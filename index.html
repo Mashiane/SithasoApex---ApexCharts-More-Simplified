@@ -29,6 +29,13 @@
       grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
       gap: 20px;
     }
+
+    /* Force a single-column layout on large screens */
+    @media (min-width: 1200px) {
+      .chart-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
     .controls {
       margin: 20px 0;
       padding: 15px;
