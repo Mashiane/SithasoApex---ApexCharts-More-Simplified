@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SithasoApex Component - Complete Demo</title>
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="apexcharts.bundle.js"></script>
   <script src="SithasoApex.js"></script>
   <style>
+    /* Enable smooth scrolling for anchor navigation */
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 1200px;
@@ -14,28 +20,32 @@
       padding: 20px;
       background: #f5f5f5;
     }
+
     .chart-container {
       background: white;
       border-radius: 8px;
-      padding: 20px 20px 20px 20px; /* Extra bottom padding for legend */
+      padding: 20px 20px 20px 20px;
+      /* Extra bottom padding for legend */
       margin: 20px 0;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      overflow: visible; /* Allow tooltips and legend to extend beyond container */
-      position: relative; /* For proper positioning */
-      z-index: 1; /* Ensure tooltips appear above other elements */
-    }
-    .chart-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      overflow: visible;
+      /* Allow tooltips and legend to extend beyond container */
+      position: relative;
+      /* For proper positioning */
+      z-index: 1;
+      /* Ensure tooltips appear above other elements */
     }
 
-    /* Force a single-column layout on large screens */
-    @media (min-width: 1200px) {
-      .chart-grid {
-        grid-template-columns: 1fr !important;
-      }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      /* Always show a single chart per row */
+      gap: 20px;
+      max-width: 900px;
+      /* keep demo readable */
+      margin: 0 auto;
     }
+
     .controls {
       margin: 20px 0;
       padding: 15px;
@@ -44,6 +54,7 @@
       margin-bottom: 15px;
       color: #666;
     }
+
     button {
       background: #008FFB;
       color: white;
@@ -53,53 +64,187 @@
       cursor: pointer;
       margin: 0 5px;
     }
-    button:hover { background: #0077e6; }
-    h1 { color: #333; text-align: center; }
-    h2 { color: #555; border-bottom: 2px solid #008FFB; padding-bottom: 5px; }
-    .code-section { margin-top:12px; background:#f7f7f9; border:1px solid #e1e1e8; padding:12px; border-radius:6px; }
+
+    button:hover {
+      background: #0077e6;
+    }
+
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+
+    h2 {
+      color: #555;
+      border-bottom: 2px solid #008FFB;
+      padding-bottom: 5px;
+    }
+
+    .code-section {
+      margin-top: 12px;
+      background: #f7f7f9;
+      border: 1px solid #e1e1e8;
+      padding: 12px;
+      border-radius: 6px;
+    }
+
     /* Code blocks: wrap long lines, hide horizontal scroll, enable vertical scrolling */
     pre.code-block {
-      margin-top:8px;
+      margin-top: 8px;
       white-space: -moz-pre-wrap;
       white-space: -pre-wrap;
       white-space: -o-pre-wrap;
-      white-space: pre-wrap; /* allow wrapping of long lines */
+      white-space: pre-wrap;
+      /* allow wrapping of long lines */
       word-wrap: break-word;
       word-break: break-word;
-      overflow-x: hidden !important; /* disable horizontal scrolling */
-      overflow-y: auto;   /* enable vertical scrolling when content is tall */
-      max-height: 60vh;   /* let it expand up to 60% of viewport height */
+      overflow-x: hidden !important;
+      /* disable horizontal scrolling */
+      overflow-y: auto;
+      /* enable vertical scrolling when content is tall */
+      max-height: 60vh;
+      /* let it expand up to 60% of viewport height */
       font-family: Consolas, 'Courier New', monospace;
-      font-size:13px;
-      padding-right: 62px; /* space for Prism toolbar / copy button */
+      font-size: 13px;
+      padding-right: 62px;
+      /* space for Prism toolbar / copy button */
     }
-    pre.code-block > code { display: block; }
+
+    pre.code-block>code {
+      display: block;
+    }
 
     /* Ensure inner code wraps and prevents horizontal scroll even when Prism sets white-space */
-    pre.code-block, pre.code-block > code {
+    pre.code-block,
+    pre.code-block>code {
       white-space: pre-wrap !important;
       word-break: break-word;
       overflow-x: hidden !important;
     }
-    .controls-desc { margin-bottom: 15px; color: #666; }
+
+    .controls-desc {
+      margin-bottom: 15px;
+      color: #666;
+    }
+
+    /* Back to top floating button */
+    .back-to-top {
+      position: fixed;
+      right: 20px;
+      bottom: 28px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #008FFB;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+      cursor: pointer;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 220ms ease, transform 220ms ease;
+      border: none;
+    }
+
+    .back-to-top.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .back-to-top:focus {
+      outline: 3px solid rgba(0, 135, 251, 0.25);
+    }
   </style>
   <!-- Prism.js for syntax highlighting of example code blocks -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
+
 <body>
   <h1>🎯 SithasoApex Component - Complete Demo</h1>
   <p class="intro-muted">Vanilla JavaScript web component for beautiful, responsive charts</p>
 
-  
+  <!-- Quick example navigation: click a number to jump to that example -->
+  <nav class="examples-nav" aria-label="Example navigation" style="text-align:center; margin:12px 0;">
+    <div
+      style="display:inline-block; background:#fff; padding:8px 10px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,0.06);">
+      <!-- Numbers will jump to each example heading -->
+      <span style="color:#666; margin-right:8px; font-weight:600;">Examples:</span>
+      <!-- Generated links 1..29 -->
+      <a href="#example-1"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">1</a>
+      <a href="#example-2"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">2</a>
+      <a href="#example-3"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">3</a>
+      <a href="#example-4"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">4</a>
+      <a href="#example-5"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">5</a>
+      <a href="#example-6"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">6</a>
+      <a href="#example-7"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">7</a>
+      <a href="#example-8"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">8</a>
+      <a href="#example-9"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">9</a>
+      <a href="#example-10"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">10</a>
+      <a href="#example-11"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">11</a>
+      <a href="#example-12"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">12</a>
+      <a href="#example-13"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">13</a>
+      <a href="#example-14"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">14</a>
+      <a href="#example-15"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">15</a>
+      <a href="#example-16"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">16</a>
+      <a href="#example-17"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">17</a>
+      <a href="#example-18"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">18</a>
+      <a href="#example-19"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">19</a>
+      <a href="#example-20"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">20</a>
+      <a href="#example-21"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">21</a>
+      <a href="#example-22"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">22</a>
+      <a href="#example-23"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">23</a>
+      <a href="#example-24"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">24</a>
+      <a href="#example-25"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">25</a>
+      <a href="#example-25a"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">25a</a>
+      <a href="#example-26"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">26</a>
+      <a href="#example-27"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">27</a>
+      <a href="#example-28"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">28</a>
+      <a href="#example-29"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">29</a>
+      <a href="#example-30"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">30</a>
+      <a href="#example-31"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">31</a>
+    </div>
+  </nav>
+
   <div class="chart-grid">
     <div class="chart-container">
-      <h2>📈 1. Simple Line Chart</h2>
-      <sithaso-apex
-        id="simple-line-chart"
-        type="line"
-        title="Website Traffic"
-        x-axis-title="Days"
-        y-axis-title="Visitors"
+      <h2 id="example-1">📈 1. Simple Line Chart</h2>
+      <sithaso-apex id="simple-line-chart" type="line" title="Website Traffic" x-axis-title="Days"
+        y-axis-title="Visitors" y-axis-output-format="thousand"
         categories='["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]'
         data='[{"name": "Daily Visitors", "data": [1200, 1350, 1180, 1420, 1680, 1890, 2100], "color": "#008FFB"}]'
         height="350px">
@@ -120,14 +265,9 @@
     </div>
 
     <div class="chart-container">
-      <h2>📈 2. Simple Line Chart (Rotated XAxis Labels)</h2>
-      <sithaso-apex
-        id="line-chart-no-rotation"
-        type="line"
-        title="Website Traffic (Rotated XAxis Labels)"
-        x-axis-title="Days"
-        y-axis-title="Visitors"
-        x-axis-label-rotate="90"
+      <h2 id="example-2">📈 2. Simple Line Chart (Rotated XAxis Labels)</h2>
+      <sithaso-apex id="line-chart-no-rotation" type="line" title="Website Traffic (Rotated XAxis Labels)"
+        x-axis-title="Days" y-axis-title="Visitors" y-axis-output-format="thousand" x-axis-label-rotate="90"
         categories='["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]'
         data='[{"name": "Daily Visitors", "data": [1200, 1350, 1180, 1420, 1680, 1890, 2100], "color": "#008FFB"}]'
         height="350px">
@@ -135,15 +275,9 @@
     </div>
 
     <div class="chart-container">
-      <h2>📈 3. Line Chart (Mutliple Series)</h2>
-      <sithaso-apex
-        id="line-chart"
-        type="line"
-        title="Monthly Revenue Growth"
-        x-axis-title="Months"
-        y-axis-title="Revenue ($)"
-        x-axis-label-rotate="45"
-        x-axis-offsety="-15"
+      <h2 id="example-3">📈 3. Line Chart (Mutliple Series)</h2>
+      <sithaso-apex id="line-chart" type="line" title="Monthly Revenue Growth" x-axis-title="Months"
+        y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45" x-axis-offsety="-15"
         categories='["Jan", "Feb", "Mar", "Apr", "May"]'
         data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}, {"name": "Target", "data": [110, 130, 135, 155, 175], "color": "#00E396"}]'
         height="400px">
@@ -151,86 +285,53 @@
     </div>
 
     <div class="chart-container">
-      <h2>📈 4. Straight Line Chart</h2>
-      <sithaso-apex
-        id="line-chart-straight"
-        type="line"
-        title="Monthly Revenue Growth (Straight Lines)"
-        x-axis-title="Months"
-        y-axis-title="Revenue ($)"
-        x-axis-label-rotate="45"
-        x-axis-offsety="-15"
-        curve="straight"
-        categories='["Jan", "Feb", "Mar", "Apr", "May"]'
+      <h2 id="example-4">📈 4. Straight Line Chart</h2>
+      <sithaso-apex id="line-chart-straight" type="line" title="Monthly Revenue Growth (Straight Lines)"
+        x-axis-title="Months" y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45"
+        x-axis-offsety="-15" curve="straight" categories='["Jan", "Feb", "Mar", "Apr", "May"]'
         data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}, {"name": "Target", "data": [110, 130, 135, 155, 175], "color": "#00E396"}]'
         height="400px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📈 5. Straight Line Chart</h2>
-      <sithaso-apex
-        type="line"
-        title="Stock Price Movement"
-        x-axis-title="Time"
-        y-axis-title="Price ($)"
-        curve="straight"
-        gradient="false"
+      <h2 id="example-5">📈 5. Straight Line Chart</h2>
+      <sithaso-apex id="stock-price-chart" type="line" title="Stock Price Movement" x-axis-title="Time" y-axis-title="Price ($)"
+        y-axis-output-format="money" curve="straight" gradient="false"
         categories='["9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"]'
-        data='[{"name": "Stock Price", "data": [100, 105, 98, 112, 108, 115, 120], "color": "#FF4560"}]'
-        height="350px">
+        data='[{"name": "Stock Price", "data": [100, 105, 98, 112, 108, 115, 120], "color": "#FF4560"}]' height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📈 6. Step Line Chart</h2>
-      <sithaso-apex
-        type="line"
-        title="Temperature Changes"
-        x-axis-title="Time"
-        y-axis-title="Temperature (°C)"
-        curve="stepline"
-        categories='["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"]'
-        data='[{"name": "Temperature", "data": [15, 15, 22, 22, 28, 28, 18], "color": "#00E396"}]'
-        height="350px">
+      <h2 id="example-6">📈 6. Step Line Chart</h2>
+      <sithaso-apex id="temperature-chart" type="line" title="Temperature Changes" x-axis-title="Time" y-axis-title="Temperature (°C)"
+        curve="stepline" categories='["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"]'
+        data='[{"name": "Temperature", "data": [15, 15, 22, 22, 28, 28, 18], "color": "#00E396"}]' height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📈 7. Dashed Line Chart</h2>
-      <sithaso-apex
-        type="line"
-        title="Project Progress"
-        x-axis-title="Weeks"
-        y-axis-title="Completion (%)"
+      <h2 id="example-7">📈 7. Dashed Line Chart</h2>
+      <sithaso-apex id="project-progress-chart" type="line" title="Project Progress" x-axis-title="Weeks" y-axis-title="Completion (%)"
         categories='["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6", "Week 7"]'
-        data='[{"name": "Planned", "data": [10, 25, 40, 60, 75, 90, 100], "color": "#FEB019", "dashed": true}, {"name": "Actual", "data": [30, 67, 70, 90, 100, 160, 150], "color": "#FF4560", "dashed": true}]'
+        data='[{"name": "Planned", "data": [10, 25, 40, 60, 75, 90, 100], "color": "#FEB019", "dashed": true}, {"name": "Actual", "data": [30, 67, 70, 90, 100, 100, 100], "color": "#FF4560", "dashed": true}]'
         height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📈 8. Realtime Line Chart</h2>
-      <sithaso-apex
-        id="realtime-chart"
-        type="line"
-        title="Dynamic Updating Chart"
-        x-axis-title="Time"
-        y-axis-title="Value"
-        realtime="true"
-        options='{"xaxis": { "type": "datetime", "range": 777600000}}'
-        height="350px">
+      <h2 id="example-8">📈 8. Realtime Line Chart</h2>
+      <sithaso-apex id="realtime-chart" type="line" title="Dynamic Updating Chart" x-axis-title="Time"
+        y-axis-title="Value" realtime="true" options='{"xaxis": { "type": "datetime", "range": 777600000}}'
+        x-axis-output-format="time" height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📈 9. Line Chart with Annotations</h2>
-      <sithaso-apex
-        type="line"
-        title="Sales Performance with Key Events"
-        x-axis-title="Months"
-        y-axis-title="Sales ($)"
-        categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]'
+      <h2 id="example-9">📈 9. Line Chart with Annotations</h2>
+      <sithaso-apex id="sales-annotations-chart" type="line" title="Sales Performance with Key Events" x-axis-title="Months" y-axis-title="Sales ($)"
+        y-axis-output-format="money" categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]'
         data='[{"name": "Sales", "data": [12000, 15000, 18000, 22000, 19000, 25000, 28000], "color": "#00E396"}]'
         options='{"annotations": {"points": [{"x": "Apr", "y": 22000, "marker": {"size": 8, "fillColor": "#fff", "strokeColor": "#FF4560", "radius": 2}, "label": {"text": "Q1 Target Met", "offsetY": -10}}], "xaxis": [{"x": "Mar", "borderColor": "#FEB019", "label": {"text": "Product Launch", "style": {"color": "#FEB019", "background": "#FEB01920"}}}]}}'
         height="350px">
@@ -238,433 +339,614 @@
     </div>
 
     <div class="chart-container">
-      <h2>📊 10. Column Chart</h2>
-      <sithaso-apex
-        type="column"
-        title="Monthly Revenue"
-        x-axis-title="Months"
-        y-axis-title="Revenue ($)"
-        x-axis-label-rotate="45"
-        categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun"]'
-        data='[{"name": "Revenue", "data": [1200, 1500, 1800, 2200, 1900, 2500], "color": "#FF4560"}]'
-        height="300px">
+      <h2 id="example-10">📊 10. Column Chart</h2>
+      <sithaso-apex id="monthly-revenue-column" type="column" title="Monthly Revenue" x-axis-title="Months" y-axis-title="Revenue ($)"
+        y-axis-output-format="money" x-axis-label-rotate="45" column-width="40%" data-label-orientation="vertical" data-label-position="center"
+        categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun"]' show-data-labels="false"
+        data='[{"name": "Revenue", "data": [1200, 1500, 1800, 2200, 1900, 2500], "color": "#FF4560"}]' height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📈 11. Column Chart Grouped</h2>
-      <sithaso-apex
-        type="column"
-        title="Monthly Revenue Growth"
-        x-axis-title="Months"
-        y-axis-title="Revenue ($)"
-        x-axis-label-rotate="45"
-        categories='["Jan", "Feb", "Mar", "Apr", "May"]'
+      <h2 id="example-11">📈 11. Column Chart Grouped</h2>
+      <sithaso-apex id="revenue-growth-grouped" type="column" title="Monthly Revenue Growth" x-axis-title="Months" y-axis-title="Revenue ($)"
+        y-axis-output-format="money" x-axis-label-rotate="45" categories='["Jan", "Feb", "Mar", "Apr", "May"]'
+        column-width="40%" data-label-position="center" data-label-orientation="vertical"
         data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}, {"name": "Target", "data": [110, 130, 135, 155, 175], "color": "#00E396"}]'
-        height="400px">
+        height="400px" show-data-labels="false">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>🥧 12. Pie Chart</h2>
-      <sithaso-apex
-        type="pie"
-        title="Browser Usage Statistics"
+      <h2 id="example-12">🥧 12. Pie Chart</h2>
+      <sithaso-apex id="browser-usage-pie" type="pie" title="Browser Usage Statistics" show-data-labels="false"
         data='[{"name": "Desktop", "data": 44, "color": "#008FFB"}, {"name": "Mobile", "data": 23, "color": "#00E396"}, {"name": "Tablet", "data": 33, "color": "#FEB019"}]'
-        height="300px">
+        options='{"stroke":{"width":6,"colors":["#fff"],"lineCap":"round"}, "plotOptions": {"pie": {"dataLabels": {"offset": 0, "style": {"colors": ["#fff"]}}}}}' height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>🍩 13. Donut Chart</h2>
-      <sithaso-apex
-        type="donut"
-        title="Browser Market Share"
+      <h2 id="example-13">🍩 13. Donut Chart</h2>
+      <sithaso-apex id="browser-market-donut" type="donut" title="Browser Market Share" show-data-labels="false"
         data='[{"name": "Chrome", "data": 65, "color": "#008FFB"}, {"name": "Firefox", "data": 20, "color": "#00E396"}, {"name": "Safari", "data": 10, "color": "#FEB019"}, {"name": "Other", "data": 5, "color": "#FF4560"}]'
-        height="300px">
+        options='{"stroke":{"width":6,"colors":["#fff"],"lineCap":"round"}}' height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📊 14. Basic Area Chart</h2>
-      <sithaso-apex
-        type="area"
-        title="Monthly Revenue Growth"
-        x-axis-title="Months"
-        y-axis-title="Revenue ($)"
-        x-axis-label-rotate="45"
-        curve="straight"
+      <h2 id="example-14">📊 14. Basic Area Chart</h2>
+      <sithaso-apex id="monthly-revenue-area" type="area" title="Monthly Revenue Growth" x-axis-title="Months" y-axis-title="Revenue ($)"
+        y-axis-output-format="money" x-axis-label-rotate="45" curve="straight"
         categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
-        data='[{"name": "Revenue", "data": [30, 40, 35, 50, 49, 60, 70, 91, 125], "color": "#008FFB"}]'
+        data='[{"name": "Revenue", "data": [30, 40, 35, 50, 49, 60, 70, 91, 125], "color": "#008FFB"}]' height="300px">
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-15">🌊 15. Spline Area Chart</h2>
+      <sithaso-apex id="smooth-data-area" type="area" title="Smooth Data Trends" x-axis-title="Months" y-axis-title="Values"
+        x-axis-label-rotate="45" categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]'
+        data='[{"name": "Series 1", "data": [31, 40, 28, 51, 42, 109, 100], "color": "#008FFB"}, {"name": "Series 2", "data": [11, 32, 45, 32, 34, 52, 41], "color": "#00E396"}]'
         height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>🌊 15. Spline Area Chart</h2>
-      <sithaso-apex
-        type="area"
-        title="Smooth Data Trends"
-        x-axis-title="Months"
-        y-axis-title="Values"
-        x-axis-label-rotate="45"
-        categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]'
-        data='[{"name": "Series 1", "data": [31, 40, 28, 51, 42, 109, 100], "color": "#008FFB"}, {"name": "Series 2", "data": [11, 32, 45, 32, 34, 52, 41], "color": "#00E396"}]'       
-        height="300px">
-      </sithaso-apex>
-    </div>
-
-    <div class="chart-container">
-      <h2>📉 16. Area Chart with Negative Values</h2>
-      <sithaso-apex
-        type="area"
-        title="Profit/Loss Analysis"
-        x-axis-title="Months"
-        y-axis-title="Amount ($)"
-        categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
+      <h2 id="example-16">📉 16. Area Chart with Negative Values</h2>
+      <sithaso-apex id="profit-loss-area" type="area" title="Profit/Loss Analysis" x-axis-title="Months" y-axis-title="Amount ($)"
+        y-axis-output-format="money" categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
         data='[{"name": "Profit", "data": [10, 41, 35, 51, 49, 62, 69, 91, 148], "color": "#00E396"}, {"name": "Loss", "data": [-10, -20, -15, -25, -30, -35, -40, -45, -50], "color": "#FF4560"}]'
         height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📚 17. Stacked Area Chart</h2>
-      <sithaso-apex
-        type="area"
-        title="Website Traffic Sources"
-        x-axis-title="Months"
-        y-axis-title="Traffic Volume"
+      <h2 id="example-17">📚 17. Stacked Area Chart</h2>
+      <sithaso-apex id="traffic-sources-stacked" type="area" title="Website Traffic Sources" x-axis-title="Months" y-axis-title="Traffic Volume"
         categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
-        data='[{"name": "Organic Search", "data": [44, 55, 57, 56, 61, 58, 63, 60, 66], "color": "#008FFB"}, {"name": "Direct", "data": [76, 85, 101, 98, 87, 105, 91, 114, 94], "color": "#00E396"}, {"name": "Social Media", "data": [35, 41, 36, 26, 45, 48, 52, 53, 41], "color": "#FEB019"}]'        
+        data='[{"name": "Organic Search", "data": [44, 55, 57, 56, 61, 58, 63, 60, 66], "color": "#008FFB"}, {"name": "Direct", "data": [76, 85, 101, 98, 87, 105, 91, 114, 94], "color": "#00E396"}, {"name": "Social Media", "data": [35, 41, 36, 26, 45, 48, 52, 53, 41], "color": "#FEB019"}]'
         height="300px">
       </sithaso-apex>
     </div>
 
+    <!-- Placeholder anchor for Example 18 so nav link works -->
+    <div id="example-18" aria-hidden="true"></div>
+
     <div class="chart-container">
-      <h2>📍 19. Scatter Plot with Axis Titles</h2>
-      <sithaso-apex
-        type="scatter"
-        title="Data Correlation Analysis"
-        x-axis-title="X Coordinate"
+      <h2 id="example-19">📍 19. Scatter Plot with Axis Titles</h2>
+      <sithaso-apex id="data-correlation-scatter" type="scatter" title="Data Correlation Analysis" x-axis-title="X Coordinate"
         y-axis-title="Y Coordinate"
-        data='[{"name": "Data Points", "data": [[10, 20], [15, 25], [20, 30], [25, 35], [30, 40]], "color": "#008FFB"}]'        
+        data='[{"name": "Data Points", "data": [[10, 20], [15, 25], [20, 30], [25, 35], [30, 40]], "color": "#008FFB"}]'
         height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>🎯 20. Radial Bar</h2>
-      <sithaso-apex
-        type="radialBar"
+      <h2 id="example-20">🎯 20. Radial Bar</h2>
+      <sithaso-apex id="progress-radial-bar" type="radialBar"
         data='[{"name": "Progress", "data": 70, "color": "#008FFB"}, {"name": "Score", "data": 80, "color": "#00E396"}, {"name": "Rating", "data": 90, "color": "#FEB019"}]'
-        height="300px">
+        end-angle="270" bar-labels="true" height="450px">
       </sithaso-apex>
     </div>
 
-    
+
 
     <div class="chart-container">
-      <h2>🏏 21. Radial Bar</h2>
-      <sithaso-apex
-        type="radialBar"
-        data='[{"name": "Cricket", "data": 70, "color": "#008FFB"}]'
-        hollow-size="70%"
+      <h2 id="example-21">🏏 21. Radial Bar</h2>
+      <sithaso-apex id="cricket-score-radial" type="radialBar" data='[{"name": "Cricket", "data": 70, "color": "#008FFB"}]' hollow-size="70%"
         height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>🏏 22. Radial Bar</h2>
-      <sithaso-apex
-        type="radialBar"
-        data='[{"name": "Cricket", "data": 70, "color": "#008FFB"}]'
-        hollow-size="70%"
-        dashed-radial="true"
+      <h2 id="example-22">🏏 22. Radial Bar</h2>
+      <sithaso-apex id="cricket-dashed-radial" type="radialBar" data='[{"name": "Cricket", "data": 70, "color": "#008FFB"}]' hollow-size="70%"
+        dashed-radial="true" height="350px">
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-23">📊 23. Horizontal Bar Chart</h2>
+      <sithaso-apex id="horizontal-bar-chart" title="Revenue Per Month" type="bar" categories='["Jan", "Feb", "Mar", "Apr", "May"]' show-data-labels="false"
+        column-width="40%" data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}]' data-label-position="center"
+        x-axis-title="Revenue ($)" x-axis-output-format="money" x-axis-offsety="20" y-axis-title="Months"
         height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2>📊 23. Horizontal Bar Chart</h2>
-      <sithaso-apex
-        title="Revenue Per Month"
-        type="bar"
-        categories='["Jan", "Feb", "Mar", "Apr", "May"]'
-        data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}]'
-        x-axis-title="Revenue ($)"
-        x-axis-offsety="20"
-        y-axis-title="Months"
-        height="350px">
-      </sithaso-apex>
-    </div>
-  </div>
-
-  <div class="chart-container">
-      <h2>📈 24. Horizontal Bar Grouped</h2>
-      <sithaso-apex
-        type="bar"
-        title="Monthly Revenue Growth"
-        x-axis-title="Revenue vs Target"
-        y-axis-title="Month"
-        categories='["Jan", "Feb", "Mar", "Apr", "May"]'
+      <h2 id="example-24">📈 24. Horizontal Bar Grouped</h2>
+      <sithaso-apex id="horizontal-bar-grouped" type="bar" title="Monthly Revenue Growth" x-axis-title="Revenue vs Target" show-data-labels="false"
+        x-axis-output-format="money" y-axis-title="Month" categories='["Jan", "Feb", "Mar", "Apr", "May"]' data-label-position="center"
         data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}, {"name": "Target", "data": [110, 130, 135, 155, 175], "color": "#00E396"}]'
-        height="400px">
+        column-width="40%" height="400px">
       </sithaso-apex>
     </div>
 
-  <div class="chart-container">
-    <h2>📡 25. Radar Chart</h2>
-    <sithaso-apex
-      type="radar"
-      title="Radar Comparison"
-      x-axis-title="Metrics"
-      y-axis-title="Score"
-      marker-size="0"
-      categories='["Strength", "Speed", "Endurance", "Agility", "Technique", "Luck"]'
-      data='[{"name": "Car 1", "data": [80, 50, 30, 40, 100, 20], "color": "#008FFB"}]'
-      height="350px">
-    </sithaso-apex>
-  </div>
+    <div class="chart-container">
+      <h2 id="example-25">📡 25. Radar Chart</h2>
+      <sithaso-apex id="radar-comparison" type="radar" title="Radar Comparison" x-axis-title="Metrics" y-axis-title="Score" marker-size="0"
+        categories='["Strength", "Speed", "Endurance", "Agility", "Technique", "Luck"]'
+        data='[{"name": "Car 1", "data": [80, 50, 30, 40, 100, 20], "color": "#AA00FF"}]' height="350px">
+      </sithaso-apex>
+    </div>
 
-  <div class="chart-container">
-    <h2>📡 25a. Radar Chart - Multi Series</h2>
-    <sithaso-apex
-      type="radar"
-      title="Radar Chart - Multi Series"
-      marker-size="0"
-      categories='["2011", "2012", "2013", "2014", "2015", "2016"]'
-      data='[{"name":"Series 1","data":[80,50,30,40,100,20]},{"name":"Series 2","data":[20,30,40,80,20,80]},{"name":"Series 3","data":[44,76,78,13,43,10]}]'
-      options='{"stroke":{"width":2},"fill":{"opacity":0.1},"chart":{"dropShadow":{"enabled":true,"blur":1,"left":1,"top":1}}}'
-      height="350px">
-    </sithaso-apex>
-  </div>
+    <div class="chart-container">
+      <h2 id="example-25a">📡 25a. Radar Chart - Multi Series</h2>
+      <sithaso-apex id="radar-multi-series" type="radar" title="Radar Chart - Multi Series" marker-size="0"
+        categories='["2011", "2012", "2013", "2014", "2015", "2016"]'
+        data='[{"name":"Series 1","data":[80,50,30,40,100,20],"color":"#AA00FF"},{"name":"Series 2","data":[20,30,40,80,20,80],"color":"#FF0066"},{"name":"Series 3","data":[44,76,78,13,43,10],"color":"#00AAFF"}]'
+        options='{"stroke":{"width":2},"fill":{"opacity":0.1},"chart":{"dropShadow":{"enabled":true,"blur":1,"left":1,"top":1}}}'
+        height="350px">
+      </sithaso-apex>
+    </div>
 
-  <!-- Dynamic Options Demo -->
-  <div class="chart-container">
-    <h2>🌐 26. Polar Area Chart</h2>
-    <sithaso-apex
-      type="polarArea"
-      title="Polar Area Distribution"
-      categories='["House A", "House B", "House C", "House D", "House E"]'
-      colors='["#FF4560", "#00E396", "#775DD0", "#FEB019", "#FF66C3"]'
-      data='[44, 20, 13, 43]'
-      height="350px">
-    </sithaso-apex>
-  </div>
+    <!-- Dynamic Options Demo -->
+    <div class="chart-container">
+      <h2 id="example-26">🌐 26. Polar Area Chart</h2>
+      <sithaso-apex id="polar-area-chart" type="polarArea" title="Polar Area Distribution"
+        categories='["House A", "House B", "House C", "House D", "House E"]'
+        colors='["#FF7A59", "#FFD166", "#06D6A0", "#4CC9F0", "#7209B7"]' data='[44, 20, 13, 43]' height="350px">
+      </sithaso-apex>
+    </div>
 
-  <div class="chart-container">
-    <h2>🔧 Dynamic Options Demo</h2>
-    <p class="controls-desc">Click the buttons below to dynamically update chart options using the setter:</p>
-    
-    <div class="controls">
-        <button onclick="toggleTheme()">🌓 Toggle Theme</button>
-        <button onclick="changeChartColors()">🎨 Colors</button>
+    <div class="chart-container">
+      <h2 id="example-27">📊 27. Stacked Column Chart</h2>
+      <sithaso-apex id="stacked-column-chart" type="column" title="Stacked Sales by Product" categories='["Q1","Q2","Q3","Q4"]' border-radius="4" show-data-labels="false"
+        y-axis-output-format="money" column-width="40%" stacked="true" data-label-position="center"
+        data='[{"name":"Product A","data":[44,55,41,67],"color":"#008FFB"},{"name":"Product B","data":[13,23,20,8],"color":"#00E396"},{"name":"Product C","data":[11,17,15,15],"color":"#FEB019"}]'
+        height="350px">
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-28">📈 28. Stacked Area Chart</h2>
+      <sithaso-apex id="stacked-area-chart" type="area" title="Stacked Area - Traffic Sources"
+        categories='["Jan","Feb","Mar","Apr","May","Jun","Jul"]' stacked="true"
+        data='[{"name":"Organic","data":[44,55,41,67,22,43,21],"color":"#008FFB"},{"name":"Direct","data":[13,23,20,8,13,27,33],"color":"#00E396"},{"name":"Referral","data":[11,17,15,15,21,14,22],"color":"#FEB019"}]'
+        height="350px">
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-29">📊 29. Stacked Bar Chart</h2>
+      <sithaso-apex id="stacked-bar-chart" type="bar" title="Stacked Revenue by Region" categories='["2016","2017","2018","2019","2020"]' show-data-labels="false"
+        border-radius="4" column-width="40%" x-axis-title="Revenue" x-axis-output-format="money" y-axis-title="Year" data-label-position="center"
+        stacked="true"
+        data='[{"name":"North","data":[44,55,41,37,22],"color":"#008FFB"},{"name":"South","data":[13,23,20,8,13],"color":"#00E396"},{"name":"East","data":[11,17,15,15,21],"color":"#FEB019"}]'
+        height="450px">
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-30">🥧 30. UIF Contribution Pie Chart (Runtime Update)</h2>
+      <p class="controls-desc">This example demonstrates runtime chart updates using B4X-style methods:</p>
+
+      <div class="controls">
+        <button onclick="updateUIFChart()">🔄 Update Chart Runtime</button>
+        <button onclick="clearUIFChart()">🗑️ Clear Chart</button>
+      </div>
+
+      <sithaso-apex id="uif-contribution-chart" type="pie" title="UIF Contribution" height="350" show-data-labels="false" show-legend="true" legend-position="top" gradient="false">
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-31">📊 31. Beneficiary Status Column Chart (Runtime Update)</h2>
+      <p class="controls-desc">This example demonstrates runtime chart updates for column charts using B4X-style methods:</p>
+
+      <div class="controls">
+        <button onclick="updateBeneficiaryChart()">🔄 Update Chart Runtime</button>
+        <button onclick="clearBeneficiaryChart()">🗑️ Clear Chart</button>
+      </div>
+
+      <sithaso-apex id="beneficiary-status-chart" type="column" title="Beneficiary Status" height="350" show-data-labels="false" show-legend="true" legend-position="top" force-rounded-stacks="false" data-label-position="center">
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2>🔧 Dynamic Options Demo</h2>
+      <p class="controls-desc">Click the buttons below to dynamically update chart options using the setter:</p>
+
+      <div class="controls">
+        <!-- Toggle Theme removed -->
+        <!-- Colors button removed -->
+        <button onclick="randomizeChartColor()">🎲 Random Color</button>
         <button onclick="updateChartTitle()">📝 Title</button>
         <button onclick="toggleDataLabels()">🏷️ Labels</button>
         <button onclick="resetChartOptions()">🔄 Reset</button>
+      </div>
+
+      <sithaso-apex id="dynamic-chart" type="bar" title="Dynamic Options Demo" x-axis-title="Values" show-data-labels="false"
+        y-axis-title="Categories" column-width="40%" data-label-position="center"
+        data='[{"name": "Series 1", "data": {"A": 10, "B": 20, "C": 30, "D": 40}, "color": "#008FFB"}]' height="350px">
+      </sithaso-apex>
     </div>
-    
-    <sithaso-apex
-      id="dynamic-chart"
-      type="bar"
-      title="Dynamic Options Demo"
-      x-axis-title="Categories"
-      y-axis-title="Values"
-      data='[{"name": "Series 1", "data": {"A": 10, "B": 20, "C": 30, "D": 40}}]'
-      height="350px">
-    </sithaso-apex>
-  </div>
 
-  <script>
-    function updateRandomData() {
-      const simpleLineChart = document.getElementById('simple-line-chart');
-      const lineChart = document.getElementById('line-chart');
-      const straightLineChart = document.querySelector('sithaso-apex[title="Stock Price Movement"]');
-      const stepLineChart = document.querySelector('sithaso-apex[title="Temperature Changes"]');
-      const dashedLineChart = document.querySelector('sithaso-apex[title="Project Progress"]');
-      const barChart = document.getElementById('bar-chart');
+    <script>
+      function updateRandomData() {
+        const simpleLineChart = document.getElementById('simple-line-chart');
+        const lineChart = document.getElementById('line-chart');
+        const straightLineChart = document.querySelector('sithaso-apex[title="Stock Price Movement"]');
+        const stepLineChart = document.querySelector('sithaso-apex[title="Temperature Changes"]');
+        const dashedLineChart = document.querySelector('sithaso-apex[title="Project Progress"]');
+        const barChart = document.getElementById('bar-chart');
 
-      // Generate random data for simple line chart (single series)
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const simpleLineData = [];
-      const simpleLineVisitors = {};
-      days.forEach(day => {
-        simpleLineVisitors[day] = Math.floor(Math.random() * 1000) + 1000; // Random visitors between 1000-2000
-      });
-      simpleLineData.push({ name: 'Daily Visitors', data: simpleLineVisitors });
+        // Generate random data for simple line chart (single series)
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const simpleLineData = [];
+        const simpleLineVisitors = {};
+        days.forEach(day => {
+          simpleLineVisitors[day] = Math.floor(Math.random() * 1000) + 1000; // Random visitors between 1000-2000
+        });
+        simpleLineData.push({ name: 'Daily Visitors', data: simpleLineVisitors });
 
-      // Generate random data for multi-series line chart
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
-      const lineData = [];
-      const barData = [];
+        // Generate random data for multi-series line chart
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
+        const lineData = [];
+        const barData = [];
 
-      const lineRevenue = {};
-      const lineTarget = {};
-      months.forEach(month => {
-        lineRevenue[month] = Math.floor(Math.random() * 200) + 50;
-        lineTarget[month] = Math.floor(Math.random() * 200) + 60;
-      });
-      lineData.push({ name: 'Revenue', data: lineRevenue });
-      lineData.push({ name: 'Target', data: lineTarget });
+        const lineRevenue = {};
+        const lineTarget = {};
+        months.forEach(month => {
+          lineRevenue[month] = Math.floor(Math.random() * 200) + 50;
+          lineTarget[month] = Math.floor(Math.random() * 200) + 60;
+        });
+        lineData.push({ name: 'Revenue', data: lineRevenue });
+        lineData.push({ name: 'Target', data: lineTarget });
 
-      // Generate random data for straight line chart
-      const times = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
-      const straightLineData = [];
-      const stockPrices = {};
-      let basePrice = 100;
-      times.forEach(time => {
-        basePrice += Math.floor(Math.random() * 20) - 10; // Random change between -10 and +10
-        stockPrices[time] = Math.max(50, basePrice); // Keep price above 50
-      });
-      straightLineData.push({ name: 'Stock Price', data: stockPrices });
+        // Generate random data for straight line chart
+        const times = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
+        const straightLineData = [];
+        const stockPrices = {};
+        let basePrice = 100;
+        times.forEach(time => {
+          basePrice += Math.floor(Math.random() * 20) - 10; // Random change between -10 and +10
+          stockPrices[time] = Math.max(50, basePrice); // Keep price above 50
+        });
+        straightLineData.push({ name: 'Stock Price', data: stockPrices });
 
-      // Generate random data for step line chart
-      const tempTimes = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
-      const stepLineData = [];
-      const temperatures = {};
-      tempTimes.forEach(time => {
-        temperatures[time] = Math.floor(Math.random() * 25) + 10; // Random temp between 10-35°C
-      });
-      stepLineData.push({ name: 'Temperature', data: temperatures });
+        // Generate random data for step line chart
+        const tempTimes = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+        const stepLineData = [];
+        const temperatures = {};
+        tempTimes.forEach(time => {
+          temperatures[time] = Math.floor(Math.random() * 25) + 10; // Random temp between 10-35°C
+        });
+        stepLineData.push({ name: 'Temperature', data: temperatures });
 
-      // Generate random data for dashed line chart
-      const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7'];
-      const dashedLineData = [];
-      const plannedProgress = {};
-      const actualProgress = {};
-      weeks.forEach((week, index) => {
-        const expected = (index + 1) * 14.28; // Roughly 100/7 ≈ 14.28
-        plannedProgress[week] = Math.round(expected);
-        actualProgress[week] = Math.round(expected + (Math.random() * 10 - 5)); // ±5 variance
-      });
-      dashedLineData.push({ name: 'Planned', data: plannedProgress });
-      dashedLineData.push({ name: 'Actual', data: actualProgress });
+        // Generate random data for dashed line chart
+        const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7'];
+        const dashedLineData = [];
+        const plannedProgress = {};
+        const actualProgress = {};
+        weeks.forEach((week, index) => {
+          const expected = (index + 1) * 14.28; // Roughly 100/7 ≈ 14.28
+          plannedProgress[week] = Math.round(expected);
+          actualProgress[week] = Math.round(expected + (Math.random() * 10 - 5)); // ±5 variance
+        });
+        dashedLineData.push({ name: 'Planned', data: plannedProgress });
+        dashedLineData.push({ name: 'Actual', data: actualProgress });
 
-      // Generate random data for realtime chart
-      const realtimeChart = document.getElementById('realtime-chart');
-      if (realtimeChart) {
-        const realtimeData = [];
-        const cpuUsage = {};
-        // Generate last 10 minutes of data
-        for (let i = 9; i >= 0; i--) {
-          const time = new Date(Date.now() - i * 60000).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-          cpuUsage[time] = Math.floor(Math.random() * 40) + 30; // Random CPU usage between 30-70%
+        // Generate random data for realtime chart
+        const realtimeChart = document.getElementById('realtime-chart');
+        if (realtimeChart) {
+          const realtimeData = [];
+          const cpuUsage = {};
+          // Generate last 10 minutes of data
+          for (let i = 9; i >= 0; i--) {
+            const time = new Date(Date.now() - i * 60000).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            cpuUsage[time] = Math.floor(Math.random() * 40) + 30; // Random CPU usage between 30-70%
+          }
+          realtimeData.push({ name: 'CPU Usage', data: cpuUsage });
+          realtimeChart.updateData(realtimeData);
         }
-        realtimeData.push({ name: 'CPU Usage', data: cpuUsage });
-        realtimeChart.updateData(realtimeData);
+
+        const barValues = ['Q1', 'Q2', 'Q3', 'Q4'].map(quarter => Math.floor(Math.random() * 100) + 100);
+        barData.push({ name: 'Quarterly Sales', data: barValues });
+
+        simpleLineChart.updateData(simpleLineData);
+        lineChart.updateData(lineData);
+        if (straightLineChart) straightLineChart.updateData(straightLineData);
+        if (stepLineChart) stepLineChart.updateData(stepLineData);
+        if (dashedLineChart) dashedLineChart.updateData(dashedLineData);
+        barChart.updateData(barData);
       }
 
-      const barValues = ['Q1', 'Q2', 'Q3', 'Q4'].map(quarter => Math.floor(Math.random() * 100) + 100);
-      barData.push({ name: 'Quarterly Sales', data: barValues });
+      // Toggle theme control removed from demo
 
-      simpleLineChart.updateData(simpleLineData);
-      lineChart.updateData(lineData);
-      if (straightLineChart) straightLineChart.updateData(straightLineData);
-      if (stepLineChart) stepLineChart.updateData(stepLineData);
-      if (dashedLineChart) dashedLineChart.updateData(dashedLineData);
-      barChart.updateData(barData);
-    }
+      // Dynamic Options Demo Functions
+      // Colors functionality removed; use Random Color button instead
 
-    function toggleTheme() {
-      const chart = document.querySelectorAll('dynamic-chart');
-      const currentTheme = chart.getAttribute('theme');
-      if (currentTheme === 'dark') {
-        chart.removeAttribute('theme');
-      } else {
-        chart.setAttribute('theme', 'dark');
-      }
-    }
-
-    // Dynamic Options Demo Functions
-    function changeChartColors() {
-      const chart = document.getElementById('dynamic-chart');
-      chart.options = {
-        colors: ['#FF4560', '#00E396', '#FEB019', '#775DD0']
-      };
-      console.log('Chart colors updated!');
-    }
-
-    function updateChartTitle() {
-      const chart = document.getElementById('dynamic-chart');
-      chart.options = {
-        title: {
-          text: 'Updated Chart Title - ' + new Date().toLocaleTimeString(),
-          style: { color: '#FF4560' }
+      function randomizeChartColor() {
+        const el = document.getElementById('dynamic-chart');
+        if (!el) return;
+        function randomHex() { return '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0'); }
+        const color = randomHex();
+        const apex = (typeof el.getChart === 'function') ? el.getChart() : el.chart;
+        if (apex) {
+          try {
+            apex.updateOptions({ colors: [color], legend: { labels: { useSeriesColors: true } } });
+            const existing = (apex.w && apex.w.config && apex.w.config.series) ? apex.w.config.series : [];
+            const updatedSeries = existing.map((s) => ({ ...(s || {}), color }));
+            apex.updateSeries(updatedSeries);
+          } catch (e) {
+            console.warn('Apex update failed, falling back to component setter', e);
+            el.options = { colors: [color], legend: { labels: { useSeriesColors: true } } };
+          }
+        } else {
+          // Fallback: try component options setter
+          el.options = { colors: [color], legend: { labels: { useSeriesColors: true } } };
         }
-      };
-      console.log('Chart title updated!');
-    }
+        // Optionally show the chosen color in UI (console for now)
+        console.log('Random color applied:', color);
+      }
 
-    function toggleDataLabels() {
-      const chart = document.getElementById('dynamic-chart');
-      const currentOptions = chart.options;
-      const showLabels = !currentOptions.dataLabels?.enabled;
+      function updateChartTitle() {
+        const chart = document.getElementById('dynamic-chart');
+        chart.options = {
+          title: {
+            text: 'Updated Chart Title - ' + new Date().toLocaleTimeString(),
+            style: { color: '#FF4560' }
+          }
+        };
+        console.log('Chart title updated!');
+      }
 
-      chart.options = {
-        dataLabels: {
-          enabled: showLabels
+      function toggleDataLabels() {
+        const chart = document.getElementById('dynamic-chart');
+        const currentOptions = chart.options;
+        const showLabels = !currentOptions.dataLabels?.enabled;
+
+        chart.options = {
+          dataLabels: {
+            enabled: showLabels
+          }
+        };
+        console.log('Data labels ' + (showLabels ? 'enabled' : 'disabled') + '!');
+      }
+
+      // previous auto-scroll removed to avoid duplicates — example-10 scrolled later after all scripts load
+
+      function resetChartOptions() {
+        // Only reset the dynamic options demo chart (`#dynamic-chart`).
+        const el = document.getElementById('dynamic-chart');
+        if (!el) return; // nothing to do
+
+        const snap = window._dynamicChartSnapshot && window._dynamicChartSnapshot['dynamic-chart'];
+        if (!snap) {
+          console.log('No snapshot found for dynamic-chart; nothing to reset');
+          return;
         }
-      };
-      console.log('Data labels ' + (showLabels ? 'enabled' : 'disabled') + '!');
-    }
 
-    function resetChartOptions() {
-      const chart = document.getElementById('dynamic-chart');
-      // Reset to original options by recreating the chart
-      chart.setAttribute('title', 'Dynamic Options Demo');
-      chart.removeAttribute('options'); // This will trigger recreation with defaults
-      console.log('Chart options reset!');
-    }
+        // Prefer the component API (updateOptions/updateData) so only this chart is affected.
+        // Recreate the element from a shallow clone so the web component lifecycle
+        // runs and the chart is initialized from the snapshot attributes.
+        try {
+          const parent = el.parentNode;
+          if (!parent) throw new Error('Parent node not found');
+          // Create a shallow clone of the element (copies attributes)
+          const newEl = el.cloneNode(false);
 
-    // Demo: Auto-update every 10 seconds
-    setInterval(updateRandomData, 10000);
+          // Restore snapshot attributes: data, options, title
+          if (snap.data !== null && typeof snap.data !== 'undefined') {
+            newEl.setAttribute('data', JSON.stringify(snap.data));
+          } else {
+            newEl.removeAttribute('data');
+          }
 
-    // Realtime chart implementation (matching ApexCharts website example)
-    let data = [];
-    let lastDate = 0;
-    const XAXISRANGE = 777600000; // 9 days in milliseconds
+          if (snap.options !== null && typeof snap.options !== 'undefined') {
+            newEl.setAttribute('options', JSON.stringify(snap.options));
+          } else {
+            newEl.removeAttribute('options');
+          }
 
-    function getNewSeries(baseval, { min, max }) {
-      const newDate = baseval + 86400000; // Add 1 day
-      lastDate = newDate;
+          if (snap.title) newEl.setAttribute('title', snap.title);
 
-      for (let i = 0; i < 1; i++) { // Add just one new point
-        const x = baseval;
-        const y = Math.floor(Math.random() * (max - min + 1)) + min;
-        data.push([x, y]);
-      }
-    }
-
-    // Initialize with some data
-    const baseval = new Date().getTime() - XAXISRANGE;
-    getNewSeries(baseval, { min: 10, max: 90 });
-
-    let intervalRuns = 0;
-    const interval = window.setInterval(function () {
-      intervalRuns++;
-      getNewSeries(lastDate, {
-        min: 10,
-        max: 90
-      });
-
-      const realtimeChart = document.getElementById('realtime-chart');
-      if (realtimeChart && realtimeChart.chart) {
-        realtimeChart.chart.updateSeries([{
-          data: data.slice()
-        }]);
+          // Replace the old element with the new one (this will re-run connectedCallback)
+          parent.replaceChild(newEl, el);
+          console.log('Dynamic chart recreated from snapshot');
+        } catch (e) {
+          console.warn('Failed to recreate dynamic chart; falling back to attribute reset', e);
+          try { if (snap.options) el.options = snap.options; else el.removeAttribute('options'); } catch (e2) { }
+          try { if (snap.data) el.data = snap.data; else el.removeAttribute('data'); } catch (e2) { }
+          try { if (snap.title) el.setAttribute('title', snap.title); } catch (e2) { }
+        }
       }
 
-      // For testing purposes, clear interval after 2 runs if in test mode
-      if (intervalRuns === 2 && window.isATest === true) {
-        clearInterval(interval);
+      // UIF Contribution Chart Runtime Update Functions
+      function updateUIFChart() {
+        const chart = document.getElementById('uif-contribution-chart');
+        
+        try {
+          // Clear existing data
+          chart.clearData();
+          
+          // Add series values
+          chart.AddSeriesValue('YES', 90);
+          chart.AddSeriesValue('NO', 10);
+          
+          // Set series colors
+          chart.SetSeriesColor('YES', '#008FFB'); // Blue
+          chart.SetSeriesColor('NO', '#FF8C00');  // Orange
+          
+          // Refresh to apply changes
+          chart.refresh();
+          
+          console.log('UIF chart updated successfully!');
+        } catch (error) {
+          console.error('Error updating UIF chart:', error);
+        }
       }
-    }, 1000);
-  </script>
+
+      function clearUIFChart() {
+        const chart = document.getElementById('uif-contribution-chart');
+        
+        try {
+          chart.clearData();
+          console.log('UIF chart cleared!');
+        } catch (error) {
+          console.error('Error clearing UIF chart:', error);
+        }
+      }
+
+      function updateBeneficiaryChart() {
+        
+        const chart = document.getElementById('beneficiary-status-chart');
+        
+        try {
+          // Clear existing data
+          chart.clearData();
+          
+          // Add categories
+          chart.addCategories(['Active', 'InActive']);
+          
+          // Add series category values
+          chart.AddSeriesCategoryValue('YES', 'Active', 491);
+          chart.AddSeriesCategoryValue('YES', 'InActive', 234);
+          chart.AddSeriesCategoryValue('NO', 'Active', 156);
+          chart.AddSeriesCategoryValue('NO', 'InActive', 89);
+          
+          // Set series colors
+          chart.SetSeriesColor('YES', '#008FFB'); // Blue
+          chart.SetSeriesColor('NO', '#FF8C00');  // Orange
+          
+          // Refresh to apply changes
+          chart.refresh();
+          
+          console.log('Beneficiary chart updated successfully!');
+        } catch (error) {
+          console.error('Error updating beneficiary chart:', error);
+        }
+      }
+
+      function clearBeneficiaryChart() {
+        const chart = document.getElementById('beneficiary-status-chart');
+        
+        try {
+          chart.clearData();
+          console.log('Beneficiary chart cleared!');
+        } catch (error) {
+          console.error('Error clearing beneficiary chart:', error);
+        }
+      }
+
+      // Demo: Auto-update every 10 seconds
+      setInterval(updateRandomData, 10000);
+
+      // Realtime chart implementation (matching ApexCharts website example)
+      let data = [];
+      let lastDate = 0;
+      const XAXISRANGE = 777600000; // 9 days in milliseconds
+
+      function getNewSeries(baseval, { min, max }) {
+        const newDate = baseval + Math.floor(Math.random() * 86400000); // Add random time within 1 day
+        lastDate = newDate;
+
+        for (let i = 0; i < 1; i++) { // Add just one new point
+          const x = newDate;
+          const y = Math.floor(Math.random() * (max - min + 1)) + min;
+          data.push([x, y]);
+        }
+      }
+
+      // Initialize with some data spread throughout the day
+      const baseval = new Date().getTime() - XAXISRANGE;
+      for (let i = 0; i < 10; i++) {
+        const randomTime = baseval + Math.floor(Math.random() * 86400000); // Random time within the range
+        const y = Math.floor(Math.random() * (90 - 10 + 1)) + 10;
+        data.push([randomTime, y]);
+      }
+      lastDate = Math.max(...data.map(d => d[0]));
+
+      let intervalRuns = 0;
+      const interval = window.setInterval(function () {
+        intervalRuns++;
+        getNewSeries(lastDate, {
+          min: 10,
+          max: 90
+        });
+
+        const realtimeChart = document.getElementById('realtime-chart');
+        if (realtimeChart && realtimeChart.chart) {
+          realtimeChart.chart.updateSeries([{
+            data: data.slice()
+          }]);
+        }
+
+        // For testing purposes, clear interval after 2 runs if in test mode
+        if (intervalRuns === 2 && window.isATest === true) {
+          clearInterval(interval);
+        }
+      }, 1000);
+
+      // Back-to-top floating button: show when scrolled down
+      (function () {
+        var scrollThreshold = 300; // px before showing button
+        var btn = document.createElement('button');
+        btn.className = 'back-to-top';
+        btn.setAttribute('aria-label', 'Back to top');
+        btn.setAttribute('title', 'Back to top');
+        btn.innerHTML = '&#8679;'; // up arrow
+        btn.style.fontSize = '18px';
+        btn.style.lineHeight = '1';
+        btn.style.border = 'none';
+        btn.style.padding = '0';
+        btn.style.background = ''; // use CSS background
+
+        // click -> smooth scroll to top
+        btn.addEventListener('click', function () {
+          try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } catch (e) {
+            // fallback
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+          }
+        });
+
+        // show/hide on scroll (throttled via rAF)
+        var lastKnownScrollY = 0;
+        var ticking = false;
+        function onScroll() {
+          lastKnownScrollY = window.pageYOffset || document.documentElement.scrollTop;
+          if (!ticking) {
+            window.requestAnimationFrame(function () {
+              if (lastKnownScrollY > scrollThreshold) {
+                btn.classList.add('show');
+              } else {
+                btn.classList.remove('show');
+              }
+              ticking = false;
+            });
+            ticking = true;
+          }
+        }
+
+        document.addEventListener('scroll', onScroll, { passive: true });
+        // initial attach and initial state
+        document.body.appendChild(btn);
+        onScroll();
+      })();
+
+      // removed automatic scroll to example-23 to favor scrolling to example-10
+
+      // Demo filter removed so all examples appear in the demo page.
+      // Previously the demo hid non-bar/column charts to focus the page;
+      // we intentionally show everything now so users can browse all examples.
+      (function () {
+        document.addEventListener('DOMContentLoaded', function () {
+          // no-op: keep all `.chart-container` elements visible and show nav links
+        });
+      })();
+    </script>
     <!-- Prism JS + copy toolbar plugin -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" />
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
     <script>
       // Fallback copy button for browsers where Prism plugins may not initialize
       document.addEventListener('DOMContentLoaded', function () {
@@ -720,101 +1002,131 @@
             pre.appendChild(btn);
           });
         }
-          // Generate pretty-printed code sections for sithaso-apex elements that don't have one
-          try {
-            document.querySelectorAll('sithaso-apex').forEach(function(el) {
-              var container = el.closest('.chart-container') || el.parentNode;
-              if (!container) return;
-              // skip if container already has a code-section
-              if (container.querySelector('.code-section')) return;
+        // Generate pretty-printed code sections for sithaso-apex elements that don't have one
+        try {
+          document.querySelectorAll('sithaso-apex').forEach(function (el) {
+            var container = el.closest('.chart-container') || el.parentNode;
+            if (!container) return;
+            // skip if container already has a code-section
+            if (container.querySelector('.code-section')) return;
 
-              // ignore any runtime-injected attributes like `style` (Prism/plugins may add these)
-              var attrs = Array.prototype.slice.call(el.attributes || []).filter(function(a) { return a.name !== 'style'; }).map(function(a) {
-                var val = a.value;
-                // try to pretty-print JSON attributes
-                try {
-                  var parsed = JSON.parse(val);
-                  val = JSON.stringify(parsed, null, 2);
-                } catch (e) {
-                  // leave as-is
-                }
-                return { name: a.name, value: val };
-              });
-
-              var lines = ['<sithaso-apex'];
-              attrs.forEach(function(a) {
-                var v = a.value;
-                // choose quoting: use single quotes for values that contain double quotes or newlines
-                if (v.indexOf('\n') !== -1 || v.indexOf('"') !== -1) {
-                  // escape single quotes inside
-                  v = v.replace(/'/g, '&#39;');
-                  v = "'" + v + "'";
-                } else {
-                  v = '"' + v.replace(/"/g, '&quot;') + '"';
-                }
-                // indent multi-line values for readability
-                if (v.indexOf('\n') !== -1) {
-                  v = v.replace(/\n/g, '\n  ');
-                }
-                lines.push('  ' + a.name + '=' + v);
-              });
-              lines.push('></sithaso-apex>');
-
-              var snippet = lines.join('\n');
-              function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-              var codeSection = document.createElement('div');
-              codeSection.className = 'code-section';
-              codeSection.innerHTML = '<strong>Code</strong><pre class="code-block"><code class="language-html">' + escapeHtml(snippet) + '</code></pre>';
-              container.appendChild(codeSection);
+            // ignore any runtime-injected attributes like `style` (Prism/plugins may add these)
+            var attrs = Array.prototype.slice.call(el.attributes || []).filter(function (a) { return a.name !== 'style'; }).map(function (a) {
+              var val = a.value;
+              // try to pretty-print JSON attributes
+              try {
+                var parsed = JSON.parse(val);
+                val = JSON.stringify(parsed, null, 2);
+              } catch (e) {
+                // leave as-is
+              }
+              return { name: a.name, value: val };
             });
 
-            // Re-run Prism highlighting if available
-            if (window.Prism && typeof Prism.highlightAll === 'function') {
-              Prism.highlightAll();
-            }
+            var lines = ['<sithaso-apex'];
+            attrs.forEach(function (a) {
+              var v = a.value;
+              // choose quoting: use single quotes for values that contain double quotes or newlines
+              if (v.indexOf('\n') !== -1 || v.indexOf('"') !== -1) {
+                // escape single quotes inside
+                v = v.replace(/'/g, '&#39;');
+                v = "'" + v + "'";
+              } else {
+                v = '"' + v.replace(/"/g, '&quot;') + '"';
+              }
+              // indent multi-line values for readability
+              if (v.indexOf('\n') !== -1) {
+                v = v.replace(/\n/g, '\n  ');
+              }
+              lines.push('  ' + a.name + '=' + v);
+            });
+            lines.push('></sithaso-apex>');
 
-            // Remove unnecessary inline styles Prism sometimes injects into code blocks
-            function removePrismInlineStyles() {
-              // target only pre and code elements inside our code sections
-              document.querySelectorAll('.code-section pre, .code-section pre > code, .code-section code').forEach(function(el) {
-                if (el.hasAttribute('style')) {
-                  el.removeAttribute('style');
+            var snippet = lines.join('\n');
+            function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+            var codeSection = document.createElement('div');
+            codeSection.className = 'code-section';
+            codeSection.innerHTML = '<strong>Code</strong><pre class="code-block"><code class="language-html">' + escapeHtml(snippet) + '</code></pre>';
+            container.appendChild(codeSection);
+          });
+
+          // Re-run Prism highlighting if available
+          if (window.Prism && typeof Prism.highlightAll === 'function') {
+            Prism.highlightAll();
+          }
+
+          // Remove unnecessary inline styles Prism sometimes injects into code blocks
+          function removePrismInlineStyles() {
+            // target only pre and code elements inside our code sections
+            document.querySelectorAll('.code-section pre, .code-section pre > code, .code-section code').forEach(function (el) {
+              if (el.hasAttribute('style')) {
+                el.removeAttribute('style');
+              }
+            });
+          }
+
+          // Initial cleanup and a couple of delayed cleanups to catch async plugin changes
+          removePrismInlineStyles();
+          setTimeout(removePrismInlineStyles, 100);
+          setTimeout(removePrismInlineStyles, 500);
+
+          // Watch for future additions/changes and clean them as they appear (narrow to code elements)
+          try {
+            var obs = new MutationObserver(function (mutations) {
+              mutations.forEach(function (m) {
+                if (m.type === 'attributes' && m.attributeName === 'style') {
+                  var el = m.target;
+                  if (!el) return;
+                  if (el.matches && (el.matches('pre') || el.matches('code')) && el.closest('.code-section')) {
+                    if (el.hasAttribute('style')) el.removeAttribute('style');
+                  }
+                } else if (m.addedNodes && m.addedNodes.length) {
+                  m.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1 && node.closest && node.closest('.code-section')) removePrismInlineStyles();
+                  });
+                }
+
+                // Snapshot initial dynamic-chart state so Reset can restore it
+                try {
+                  const dyn = document.getElementById('dynamic-chart');
+                  if (dyn) {
+                    const initialOptionsAttr = dyn.getAttribute('options');
+                    const initialDataAttr = dyn.getAttribute('data');
+                    const initialOptions = initialOptionsAttr ? JSON.parse(initialOptionsAttr) : null;
+                    const initialData = initialDataAttr ? JSON.parse(initialDataAttr) : null;
+                    window._dynamicChartSnapshot = window._dynamicChartSnapshot || {};
+                    window._dynamicChartSnapshot['dynamic-chart'] = {
+                      options: initialOptions,
+                      data: initialData,
+                      title: dyn.getAttribute('title') || null
+                    };
+                  }
+                } catch (e) {
+                  // non-fatal
                 }
               });
-            }
-
-            // Initial cleanup and a couple of delayed cleanups to catch async plugin changes
-            removePrismInlineStyles();
-            setTimeout(removePrismInlineStyles, 100);
-            setTimeout(removePrismInlineStyles, 500);
-
-            // Watch for future additions/changes and clean them as they appear (narrow to code elements)
-            try {
-              var obs = new MutationObserver(function(mutations) {
-                mutations.forEach(function(m) {
-                  if (m.type === 'attributes' && m.attributeName === 'style') {
-                    var el = m.target;
-                    if (!el) return;
-                    if (el.matches && (el.matches('pre') || el.matches('code')) && el.closest('.code-section')) {
-                      if (el.hasAttribute('style')) el.removeAttribute('style');
-                    }
-                  } else if (m.addedNodes && m.addedNodes.length) {
-                    m.addedNodes.forEach(function(node) {
-                      if (node.nodeType === 1 && node.closest && node.closest('.code-section')) removePrismInlineStyles();
-                    });
-                  }
-                });
-              });
-              obs.observe(document.body, { attributes: true, subtree: true, childList: true });
-            } catch (e) {
-              // ignore if MutationObserver unavailable
-            }
+            });
+            obs.observe(document.body, { attributes: true, subtree: true, childList: true });
           } catch (e) {
-            // non-fatal
-            console.warn('Failed to auto-generate code sections:', e);
+            // ignore if MutationObserver unavailable
           }
+        } catch (e) {
+          // non-fatal
+          console.warn('Failed to auto-generate code sections:', e);
+        }
+      });
+
+      // Scroll to example 10 after page loads
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          const example10 = document.getElementById('example-10');
+          if (example10) {
+            example10.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100); // Small delay to ensure everything is rendered
       });
     </script>
 </body>
+
 </html>

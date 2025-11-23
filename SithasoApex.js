@@ -3,7 +3,7 @@
 
 class SithasoApex extends HTMLElement {
   static get observedAttributes() {
-    return ['type', 'data', 'options', 'height', 'width', 'theme', 'loading', 'show-legend', 'legend-position', 'show-toolbar', 'title', 'show-data-labels', 'x-axis-title', 'y-axis-title', 'bar-orientation', 'curve', 'line-width', 'categories', 'donut-show-total', 'hollow-size', 'dashed-radial', 'track-width', 'bar', 'x-axis-offsety', 'x-axis-label-rotate', 'x-axis-label-rotate-offsety', 'gradient', 'realtime', 'marker-size'];
+    return ['type', 'data', 'options', 'height', 'width', 'theme', 'loading', 'show-legend', 'legend-position', 'show-toolbar', 'title', 'show-data-labels', 'data-label-orientation', 'data-label-position', 'x-axis-title', 'y-axis-title', 'bar-orientation', 'curve', 'line-width', 'categories', 'donut-show-total', 'hollow-size', 'dashed-radial', 'track-width', 'bar', 'x-axis-offsety', 'x-axis-label-rotate', 'x-axis-label-rotate-offsety', 'gradient', 'realtime', 'marker-size', 'stacked', 'border-radius', 'x-axis-output-format', 'y-axis-output-format', 'column-width', 'start-angle', 'end-angle', 'bar-labels'];
   }
 
   constructor() {
@@ -12,6 +12,12 @@ class SithasoApex extends HTMLElement {
     this._data = null;
     this._options = {};
     this._isLoading = false;
+    this._pendingUpdates = {};
+    this._updateTimeout = null;
+    this._updateDelay = 100; // ms to wait before applying updates
+    this._seriesMap = new Map(); // Store series in memory for runtime management
+    this._categories = []; // Store categories in memory for runtime management
+    this._colors = []; // Store colors in memory for runtime management
   }
 
   connectedCallback() {
@@ -21,22 +27,150 @@ class SithasoApex extends HTMLElement {
 
   disconnectedCallback() {
     if (this.chart) {
-      this.chart.destroy();
+      try {
+        this.chart.destroy();
+      } catch (error) {
+        console.warn('Error destroying chart during disconnection:', error);
+      }
     }
   }
 
-  attributeChangedCallback(name, oldValue, newValue) {
-    if (oldValue !== newValue) {
-      if (name === 'loading') {
-        this._isLoading = newValue !== null;
-        this.updateLoadingState();
-      } else if (name === 'type' && this.chart) {
-        // Type change requires chart recreation
-        this.chart.destroy();
-        this.chart = null;
-        this.render();
+  // Debounced update method to batch multiple attribute changes
+  _scheduleUpdate(attributeName, newValue) {
+    // Clear any existing timeout
+    if (this._updateTimeout) {
+      clearTimeout(this._updateTimeout);
+    }
+
+    // Add this change to pending updates
+    this._pendingUpdates[attributeName] = newValue;
+
+    // Schedule the update
+    this._updateTimeout = setTimeout(() => {
+      this._applyPendingUpdates();
+    }, this._updateDelay);
+  }
+
+  // Apply all pending updates at once
+  _applyPendingUpdates() {
+    if (!this.chart || Object.keys(this._pendingUpdates).length === 0) {
+      return;
+    }
+
+    // Skip updates if chart container is not properly attached to DOM
+    if (!this.chart.container || !document.contains(this.chart.container)) {
+      this._pendingUpdates = {}; // Clear pending updates
+      return;
+    }
+
+    const updates = { ...this._pendingUpdates };
+    this._pendingUpdates = {}; // Clear before processing
+
+    // Process data/options updates first (these use updateOptions/updateSeries)
+    if (updates.data !== undefined) {
+      try {
+        const rawData = this.parseData(updates.data);
+        const chartType = this.getAttribute('type') || 'line';
+        let parsedData = rawData;
+        // Convert parsed data into the expected shape for updateSeries
+        if (chartType === 'pie' || chartType === 'donut' || chartType === 'radialBar' || chartType === 'polarArea') {
+          parsedData = this.formatSeries(rawData, chartType);
+        } else {
+          parsedData = this.formatSeries(rawData, chartType);
+        }
+        this.chart.updateSeries(parsedData);
+      } catch (error) {
+        console.error('Error updating chart data:', error);
       }
-      // All other attribute changes are locked - no chart updates allowed
+    }
+
+    if (updates.options !== undefined) {
+      try {
+        const options = this.parseOptions(updates.options);
+        this.chart.updateOptions(options);
+      } catch (error) {
+        console.error('Error updating chart options:', error);
+      }
+    }
+
+    // Process visual attribute updates
+    const visualAttributes = ['title', 'height', 'width', 'show-legend', 'legend-position', 'show-toolbar', 'show-data-labels', 'data-label-orientation', 'data-label-position'];
+    const visualUpdates = {};
+
+    for (const [attr, value] of Object.entries(updates)) {
+      if (visualAttributes.includes(attr)) {
+        if (attr === 'title') {
+          visualUpdates.title = { text: value };
+        } else if (attr === 'height') {
+          visualUpdates.chart = { ...visualUpdates.chart, height: parseInt(value) || 400 };
+        } else if (attr === 'width') {
+          visualUpdates.chart = { ...visualUpdates.chart, width: parseInt(value) || '100%' };
+        } else if (attr === 'show-legend') {
+          visualUpdates.legend = { show: value === 'true' };
+        } else if (attr === 'legend-position') {
+          visualUpdates.legend = { ...visualUpdates.legend, position: value };
+        } else if (attr === 'show-toolbar') {
+          visualUpdates.chart = { ...visualUpdates.chart, toolbar: { show: value === 'true' } };
+        } else if (attr === 'show-data-labels') {
+          visualUpdates.dataLabels = { enabled: value === 'true' };
+        } else if (attr === 'data-label-orientation') {
+          visualUpdates.plotOptions = visualUpdates.plotOptions || {};
+          visualUpdates.plotOptions.bar = visualUpdates.plotOptions.bar || {};
+          visualUpdates.plotOptions.bar.dataLabels = visualUpdates.plotOptions.bar.dataLabels || {};
+          visualUpdates.plotOptions.bar.dataLabels.orientation = value;
+        } else if (attr === 'data-label-position') {
+          visualUpdates.plotOptions = visualUpdates.plotOptions || {};
+          visualUpdates.plotOptions.bar = visualUpdates.plotOptions.bar || {};
+          visualUpdates.plotOptions.bar.dataLabels = visualUpdates.plotOptions.bar.dataLabels || {};
+          visualUpdates.plotOptions.bar.dataLabels.position = value;
+        }
+      }
+    }
+
+    // Apply visual updates if any
+    if (Object.keys(visualUpdates).length > 0) {
+      try {
+        this.chart.updateOptions(visualUpdates);
+      } catch (error) {
+        console.error('Error updating chart options:', error);
+      }
+    }
+  }
+
+  // Force immediate application of any pending updates
+  forceUpdate() {
+    if (this._updateTimeout) {
+      clearTimeout(this._updateTimeout);
+      this._updateTimeout = null;
+    }
+    this._applyPendingUpdates();
+  }
+
+  // Set the debounce delay (in milliseconds)
+  setUpdateDelay(delay) {
+    this._updateDelay = Math.max(0, delay);
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) return;
+
+    if (name === 'loading') {
+      this._isLoading = newValue !== null;
+      this.updateLoadingState();
+    } else if (name === 'type') {
+      // Type change requires immediate chart recreation (can't be debounced)
+      if (this.chart) {
+        try {
+          this.chart.destroy();
+        } catch (error) {
+          console.warn('Error destroying chart during type change:', error);
+        }
+        this.chart = null;
+      }
+      this.render();
+    } else {
+      // All other attributes are debounced for better performance
+      this._scheduleUpdate(name, newValue);
     }
   }
 
@@ -63,8 +197,113 @@ class SithasoApex extends HTMLElement {
     }
   }
 
+  // Getter for the `border-radius` attribute. Defaults to 4 when not set.
+  get borderRadius() {
+    const v = this.getAttribute('border-radius');
+    const n = parseInt(v, 10);
+    return (!isNaN(n) && n >= 0) ? n : 4;
+  }
+
+  // Getter for axis output format attributes. Allowed values: 'money','thousand','normal','date','datetime','time'
+  get xAxisOutputFormat() {
+    const v = (this.getAttribute('x-axis-output-format') || 'normal').toString();
+    return ['money', 'thousand', 'normal', 'date', 'datetime', 'time'].includes(v) ? v : 'normal';
+  }
+
+  get yAxisOutputFormat() {
+    const v = (this.getAttribute('y-axis-output-format') || 'normal').toString();
+    return ['money', 'thousand', 'normal', 'date', 'datetime', 'time'].includes(v) ? v : 'normal';
+  }
+
+  // Format a single axis value according to the requested output format
+  _formatValueForAxis(val, fmt) {
+    if (!fmt || fmt === 'normal') return val;
+    // Try numeric formatting first for money/thousand
+    if (fmt === 'money' || fmt === 'thousand') {
+      const n = Number(val);
+      if (isNaN(n)) return val;
+      if (fmt === 'money') {
+        return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+      }
+      return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n);
+    }
+
+    // Date formatting: accept numeric timestamps or parseable date strings
+    if (fmt === 'date' || fmt === 'datetime') {
+      let d = null;
+      if (typeof val === 'number') d = new Date(val);
+      else if (typeof val === 'string' && /^[0-9]+$/.test(val)) d = new Date(Number(val));
+      else d = new Date(val);
+      if (isNaN(d.getTime())) return val;
+      const pad = (s) => String(s).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const mm = pad(d.getMonth() + 1);
+      const dd = pad(d.getDate());
+      if (fmt === 'date') return `${yyyy}-${mm}-${dd}`;
+      const hh = pad(d.getHours());
+      const min = pad(d.getMinutes());
+      return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+    }
+
+    // Time formatting: HH:mm
+    if (fmt === 'time') {
+      let d = null;
+      if (typeof val === 'number') d = new Date(val);
+      else if (typeof val === 'string' && /^[0-9]+$/.test(val)) d = new Date(Number(val));
+      else d = new Date(val);
+      if (isNaN(d.getTime())) return val;
+      const pad = (s) => String(s).padStart(2, '0');
+      const hh = pad(d.getHours());
+      const min = pad(d.getMinutes());
+      return `${hh}:${min}`;
+    }
+
+    return val;
+  }
+
+  // Inject label formatter functions into defaultOptions.xaxis/yaxis when not provided by user options
+  _applyAxisOutputFormats(defaultOptions) {
+    try {
+      const xfmt = this.xAxisOutputFormat;
+      const yfmt = this.yAxisOutputFormat;
+
+      if (defaultOptions && xfmt && xfmt !== 'normal') {
+        defaultOptions.xaxis = defaultOptions.xaxis || {};
+        defaultOptions.xaxis.labels = defaultOptions.xaxis.labels || {};
+        if (typeof defaultOptions.xaxis.labels.formatter === 'undefined') {
+          defaultOptions.xaxis.labels.formatter = (val) => this._formatValueForAxis(val, xfmt);
+        }
+      }
+
+      if (defaultOptions && yfmt && yfmt !== 'normal') {
+        if (Array.isArray(defaultOptions.yaxis)) {
+          defaultOptions.yaxis = defaultOptions.yaxis.map(y => {
+            y = y || {};
+            y.labels = y.labels || {};
+            if (typeof y.labels.formatter === 'undefined') {
+              y.labels.formatter = (val) => this._formatValueForAxis(val, yfmt);
+            }
+            return y;
+          });
+        } else {
+          defaultOptions.yaxis = defaultOptions.yaxis || {};
+          defaultOptions.yaxis.labels = defaultOptions.yaxis.labels || {};
+          if (typeof defaultOptions.yaxis.labels.formatter === 'undefined') {
+            defaultOptions.yaxis.labels.formatter = (val) => this._formatValueForAxis(val, yfmt);
+          }
+        }
+      }
+    } catch (e) {
+      // non-fatal - don't block chart creation
+      console.warn('Failed to apply axis output formats', e);
+    }
+  }
+
   render() {
     if (!this.checkApexCharts()) return;
+
+    // Clear any previous content (e.g., error messages)
+    this.innerHTML = '';
 
     const container = document.createElement('div');
     container.style.height = this.getAttribute('height') || '300px';
@@ -72,6 +311,13 @@ class SithasoApex extends HTMLElement {
     container.style.transition = 'opacity 0.3s ease';
     // For circular charts, allow overflow to prevent clipping
     const chartType = this.mapChartType(this.getAttribute('type') || 'line');
+
+    // Default to forcing rounded stacks for bar/column charts unless the
+    // user explicitly set the attribute. This makes pill-shaped ends the
+    // default visual for stacked bars/columns.
+    if ((chartType === 'bar' || chartType === 'column') && this.getAttribute('force-rounded-stacks') === null) {
+      this.setAttribute('force-rounded-stacks', 'true');
+    }
     if (chartType === 'pie' || chartType === 'donut' || chartType === 'radialBar') {
       container.style.overflow = 'visible';
     } else {
@@ -129,15 +375,6 @@ class SithasoApex extends HTMLElement {
 
   // ===== UTILITY METHODS =====
 
-  validateChartData(data) {
-    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
-      this.showError('No data provided for chart');
-      return false;
-    }
-    // Allow empty arrays as they might be valid for dynamic charts
-    return true;
-  }
-
   // Get base default options applicable to all chart types
   getBaseDefaultOptions(chartType = 'line') {
     const isCartesian = ['line', 'area', 'bar', 'scatter'].includes(chartType);
@@ -150,6 +387,25 @@ class SithasoApex extends HTMLElement {
         animations: { enabled: true },  // Smooth UX
         fontFamily: 'inherit',          // Consistent with page fonts
         zoom: { enabled: false }        // Disabled by default
+      },
+      tooltip: {
+        enabled: true,
+        shared: true,
+        followCursor: true,
+        intersect: false,
+        x: {
+          show: true,
+        },
+        y: {
+          show: true,
+        }
+      },
+      // By default disable x-axis label tooltips to avoid hover popups on axis labels
+      xaxis: {
+        tooltip: { enabled: false }
+      },
+      yaxis: {
+        tooltip: { enabled: false }
       },
       dataLabels: {
         enabled: false  // Most examples disable data labels by default
@@ -166,12 +422,7 @@ class SithasoApex extends HTMLElement {
             offsetY: 0
           }
         }
-      }],
-      tooltip: {
-        enabled: true,
-        theme: 'light',
-        style: { fontSize: '12px' }
-      }
+      }]
     };
 
     // Add grid settings for all charts
@@ -212,12 +463,43 @@ class SithasoApex extends HTMLElement {
     return value ? parseInt(value, 10) : 6;
   }
 
+  // Getter for optional `column-width` attribute. If not set, component
+  // will leave the value undefined so ApexCharts uses its own default ('70%').
+  get columnWidth() {
+    const v = this.getAttribute('column-width');
+    return v ? v.toString() : null;
+  }
+
+  // Getter for bar-labels attribute (boolean). Defaults to false.
+  get barLabels() {
+    const v = this.getAttribute('bar-labels');
+    return v === 'true';
+  }
+
+  // Getter for radial bar start-angle (degrees). Default 0.
+  get startAngle() {
+    const v = this.getAttribute('start-angle');
+    const n = parseInt(v, 10);
+    return (!isNaN(n)) ? n : 0;
+  }
+
+  // Getter for radial bar end-angle (degrees). Default 270.
+  get endAngle() {
+    const v = this.getAttribute('end-angle');
+    const n = parseInt(v, 10);
+    return (!isNaN(n)) ? n : 360;
+  }
+
   // Getters and setters for all observedAttributes
   get typeOf() { return this.getAttribute('type'); }
   set typeOf(value) { this.setAttribute('type', value); }
 
   get data() { return this.parseData(this.getAttribute('data')); }
-  set data(value) { this.setAttribute('data', JSON.stringify(value)); }
+  set data(value) {
+    const jsonValue = JSON.stringify(value);
+    this.setAttribute('data', jsonValue);
+    // If chart exists, update it directly (attributeChangedCallback will handle it)
+  }
 
   get height() { return this.getAttribute('height'); }
   set height(value) { this.setAttribute('height', value); }
@@ -243,8 +525,18 @@ class SithasoApex extends HTMLElement {
   get title() { return this.getAttribute('title'); }
   set title(value) { this.setAttribute('title', value); }
 
-  get showDataLabels() { return this.getAttribute('show-data-labels'); }
-  set showDataLabels(value) { this.setAttribute('show-data-labels', value); }
+  // Getter/setter for show-data-labels to normalize the boolean behavior
+  get showDataLabels() {
+    return this.hasAttribute('show-data-labels') && this.getAttribute('show-data-labels') !== 'false';
+  }
+  set showDataLabels(value) {
+    if (value === false || value === 'false' || value === null || value === undefined) {
+      this.removeAttribute('show-data-labels');
+    } else {
+      // Set explicit true string so attributeExists checks pass
+      this.setAttribute('show-data-labels', 'true');
+    }
+  }
 
   get xAxisTitle() { return this.getAttribute('x-axis-title'); }
   set xAxisTitle(value) { this.setAttribute('x-axis-title', value); }
@@ -254,6 +546,25 @@ class SithasoApex extends HTMLElement {
 
   get barOrientation() { return this.getAttribute('bar-orientation'); }
   set barOrientation(value) { this.setAttribute('bar-orientation', value); }
+
+  // Getter/setter for data-label-orientation: values like 'vertical' or 'horizontal'
+  get dataLabelOrientation() { return this.getAttribute('data-label-orientation'); }
+  set dataLabelOrientation(value) {
+    if (value === null || value === undefined) {
+      this.removeAttribute('data-label-orientation');
+    } else {
+      this.setAttribute('data-label-orientation', value);
+    }
+  }
+  // Getter/setter for data-label-position: values like 'top', 'center', 'bottom'
+  get dataLabelPosition() { return this.getAttribute('data-label-position'); }
+  set dataLabelPosition(value) {
+    if (value === null || value === undefined) {
+      this.removeAttribute('data-label-position');
+    } else {
+      this.setAttribute('data-label-position', value);
+    }
+  }
 
   get curve() { return this.getAttribute('curve'); }
   set curve(value) { this.setAttribute('curve', value); }
@@ -303,13 +614,18 @@ class SithasoApex extends HTMLElement {
   get realtime() { return this.getAttribute('realtime'); }
   set realtime(value) { this.setAttribute('realtime', value); }
 
+  // stacked: boolean attribute controlling whether certain charts are stacked
+  get stacked() { return this.getAttribute('stacked') === 'true'; }
+  set stacked(value) { this.setAttribute('stacked', value ? 'true' : 'false'); }
+
   // ===== UTILITY METHODS =====
 
   validateChartData(data) {
-    if (!data || (Array.isArray(data) && data.length === 0) || (typeof data === 'object' && Object.keys(data).length === 0)) {
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
       this.showError('No data provided for chart');
       return false;
     }
+    // Allow empty arrays as they might be valid for dynamic charts
     return true;
   }
 
@@ -394,7 +710,7 @@ class SithasoApex extends HTMLElement {
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') === 'true';
+    const showDataLabels = this.showDataLabels;
     const xAxisTitle = this.getAttribute('x-axis-title') || '';
     const yAxisTitle = this.getAttribute('y-axis-title') || '';
     const curve = this.getAttribute('curve') || 'smooth';
@@ -470,10 +786,28 @@ class SithasoApex extends HTMLElement {
       };
     }
 
+    // Apply stacking if requested
+    if (this.getAttribute('stacked') === 'true') {
+      defaultOptions.chart = {
+        ...defaultOptions.chart,
+        stacked: true
+      };
+
+      // When bars are stacked, Apex may round each segment depending on configuration.
+      // Set `borderRadiusWhenStacked` to prefer rounding only the outermost segment.
+      defaultOptions.plotOptions = {
+        ...defaultOptions.plotOptions,
+        bar: {
+          ...defaultOptions.plotOptions.bar,
+          // prefer 'all' so stacked segments get rounded when requested
+          borderRadiusWhenStacked: 'all'
+        }
+      };
+    }
+
     // Apply axis titles after merging options to ensure they're not overridden
     if (xAxisTitle) {
       const xAxisOffsetY = this.getAttribute('x-axis-offsety');
-      console.log('Line Chart - Current x-axis title offsetY:', xAxisOffsetY || '2 (default)');
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
         title: {
@@ -490,7 +824,6 @@ class SithasoApex extends HTMLElement {
     // Apply x-axis label rotation if specified
     const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
     if (xAxisLabelRotate && parseInt(xAxisLabelRotate) !== 0) {
-      console.log('Line Chart - Applying x-axis label rotate:', xAxisLabelRotate);
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
         position: 'bottom',
@@ -543,7 +876,71 @@ class SithasoApex extends HTMLElement {
       };
     }
 
+    // Ensure bar corner radius default when not provided in options
     try {
+      defaultOptions.plotOptions = defaultOptions.plotOptions || {};
+      defaultOptions.plotOptions.bar = defaultOptions.plotOptions.bar || {};
+      if (typeof defaultOptions.plotOptions.bar.borderRadius === 'undefined') {
+        defaultOptions.plotOptions.bar.borderRadius = 4;
+      }
+      // Apply optional column/columnWidth override if provided via attribute
+      if (this.columnWidth) {
+        defaultOptions.plotOptions.bar.columnWidth = this.columnWidth;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+
+
+      // Ensure categories are attached to xaxis for line charts
+      try {
+        let parsedCategories = null;
+        try {
+          parsedCategories = categories ? JSON.parse(categories) : null;
+        } catch (e) {
+          parsedCategories = null;
+        }
+
+        if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
+          defaultOptions.xaxis = {
+            ...(defaultOptions.xaxis || {}),
+            categories: parsedCategories
+          };
+        }
+      } catch (e) {
+        // ignore
+      }
+
+    // If series include per-series colors, copy them into options.colors
+    // unless the user explicitly provided options.colors.
+    try {
+      const seriesColors = Array.isArray(series) ? series.map(s => s && s.color).filter(Boolean) : [];
+      if (seriesColors.length > 0 && (!defaultOptions.colors || defaultOptions.colors.length === 0)) {
+        defaultOptions.colors = seriesColors;
+        if (defaultOptions.legend && defaultOptions.legend.labels) {
+          defaultOptions.legend.labels.useSeriesColors = true;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
+      // Apply data label orientation (if set) to plotOptions.bar so we don't clobber other bar options
+      if (this.hasAttribute('data-label-orientation')) {
+        defaultOptions.plotOptions = defaultOptions.plotOptions || {};
+        defaultOptions.plotOptions.bar = defaultOptions.plotOptions.bar || {};
+        defaultOptions.plotOptions.bar.dataLabels = defaultOptions.plotOptions.bar.dataLabels || {};
+        defaultOptions.plotOptions.bar.dataLabels.orientation = this.getAttribute('data-label-orientation');
+      }
+      if (this.hasAttribute('data-label-position')) {
+        defaultOptions.plotOptions = defaultOptions.plotOptions || {};
+        defaultOptions.plotOptions.bar = defaultOptions.plotOptions.bar || {};
+        defaultOptions.plotOptions.bar.dataLabels = defaultOptions.plotOptions.bar.dataLabels || {};
+        defaultOptions.plotOptions.bar.dataLabels.position = this.getAttribute('data-label-position');
+      }
       this.chart = new ApexCharts(container, {
         ...defaultOptions,
         series: series
@@ -567,7 +964,7 @@ class SithasoApex extends HTMLElement {
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') === 'true';
+    const showDataLabels = this.showDataLabels;
     const xAxisTitle = this.getAttribute('x-axis-title') || '';
     const yAxisTitle = this.getAttribute('y-axis-title') || '';
     const curve = this.getAttribute('curve') || 'smooth';
@@ -598,12 +995,13 @@ class SithasoApex extends HTMLElement {
     };
 
     const defaultOptions = {
+      ...this.getBaseDefaultOptions('area'),
       chart: {
+        ...this.getBaseDefaultOptions('area').chart,
         type: 'area',
         height: parseInt(this.getAttribute('height')) || 400,
         toolbar: { show: showToolbar },
-        animations: { enabled: true },
-        fontFamily: 'inherit'
+        animations: { enabled: true }
       },
       title: {
         text: title,
@@ -613,6 +1011,7 @@ class SithasoApex extends HTMLElement {
           color: '#333'
         }
       },
+      // keep responsive/grid overrides that differ from base
       responsive: [{
         breakpoint: 480,
         options: {
@@ -657,15 +1056,6 @@ class SithasoApex extends HTMLElement {
         strokeColors: '#fff',
         strokeWidth: 2
       },
-      tooltip: {
-        enabled: true,
-        followCursor: true,
-        intersect: false,
-        shared: false,
-        theme: 'light',
-        style: { fontSize: '12px' },
-        onDatasetHover: { highlightDataSeries: false }
-      },
       ...options
     };
 
@@ -681,10 +1071,27 @@ class SithasoApex extends HTMLElement {
       };
     }
 
+    
+    // Apply stacking if requested
+    if (this.getAttribute('stacked') === 'true') {
+      defaultOptions.chart = {
+        ...defaultOptions.chart,
+        stacked: true
+      };
+      // prefer 'all' so stacked segments get rounded when requested
+      defaultOptions.plotOptions = {
+        ...defaultOptions.plotOptions,
+        bar: {
+          ...((defaultOptions.plotOptions && defaultOptions.plotOptions.bar) || {}),
+          borderRadiusWhenStacked: 'all'
+        }
+      };
+    }
+
+
     // Apply axis titles after merging options to ensure they're not overridden
     if (xAxisTitle) {
       const xAxisOffsetY = this.getAttribute('x-axis-offsety');
-      console.log('Area Chart - Current x-axis title offsetY:', xAxisOffsetY || '2 (default)');
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
         title: {
@@ -701,7 +1108,6 @@ class SithasoApex extends HTMLElement {
     // Apply x-axis label rotation if specified
     const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
     if (xAxisLabelRotate && parseInt(xAxisLabelRotate) !== 0) {
-      console.log('Area Chart - Applying x-axis label rotate:', xAxisLabelRotate);
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
         position: 'bottom',
@@ -748,6 +1154,7 @@ class SithasoApex extends HTMLElement {
     }
 
     try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
       this.chart = new ApexCharts(container, {
         ...defaultOptions,
         series: series
@@ -771,7 +1178,7 @@ class SithasoApex extends HTMLElement {
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') === 'true';
+    const showDataLabels = this.showDataLabels;
     const xAxisTitle = this.getAttribute('x-axis-title') || '';
     const yAxisTitle = this.getAttribute('y-axis-title') || '';
     const barOrientation = this.getAttribute('bar-orientation') || 'vertical'; // Default to vertical for columns
@@ -804,8 +1211,10 @@ class SithasoApex extends HTMLElement {
 
     // Base options following vanilla-js bar chart examples
     const defaultOptions = {
+      ...this.getBaseDefaultOptions('column'),
       series: series,
       chart: {
+        ...this.getBaseDefaultOptions('column').chart,
         type: 'bar',
         height: parseInt(this.getAttribute('height')) || 350,
         toolbar: { show: showToolbar }
@@ -813,10 +1222,14 @@ class SithasoApex extends HTMLElement {
       plotOptions: {
         bar: {
           horizontal: barOrientation === 'horizontal', // Will be false for vertical columns
-          borderRadius: 4,
-          borderRadiusApplication: 'end'
+          borderRadius: this.borderRadius,
+          // For vertical columns we want rounded corners on both top and bottom ('around').
+          // For horizontal bars keep 'end' to round only the outer end.
+          borderRadiusApplication: 'around',
+          borderRadiusWhenStacked: 'all',
         }
       },
+      // Allow explicit orientation of data labels on bar/column charts (applied below to avoid replacement)
       dataLabels: {
         enabled: finalShowDataLabels
       },
@@ -855,10 +1268,29 @@ class SithasoApex extends HTMLElement {
       };
     }
 
+    // Apply stacking if requested
+    if (this.getAttribute('stacked') === 'true') {
+      defaultOptions.chart = {
+        ...defaultOptions.chart,
+        stacked: true
+      };
+      // When columns are stacked, prefer rounding all stacked segments
+          defaultOptions.plotOptions = {
+        ...defaultOptions.plotOptions,
+        bar: {
+          ...((defaultOptions.plotOptions && defaultOptions.plotOptions.bar) || {}),
+          borderRadiusWhenStacked: 'all',
+          borderRadius: this.borderRadius,           // radius from attribute
+          borderRadiusApplication: 'around', // top & bottom corners
+          endingShape: 'rounded',     // optional, softer look
+          startingShape: 'rounded'    // optional
+        }
+      };
+    }
+
     // Apply axis titles after merging options to ensure they're not overridden
     if (xAxisTitle) {
       const xAxisOffsetY = this.getAttribute('x-axis-offsety');
-      console.log('Column Chart - Current x-axis title offsetY:', xAxisOffsetY || '2 (default)');
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
         title: {
@@ -875,7 +1307,6 @@ class SithasoApex extends HTMLElement {
     // Apply x-axis label rotation if specified
     const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
     if (xAxisLabelRotate && parseInt(xAxisLabelRotate) !== 0) {
-      console.log('Column Chart - Applying x-axis label rotate:', xAxisLabelRotate);
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
         position: 'bottom',
@@ -905,10 +1336,17 @@ class SithasoApex extends HTMLElement {
     if (categories) {
       try {
         const categoriesArray = JSON.parse(categories);
-        defaultOptions.xaxis = {
-          ...defaultOptions.xaxis,
-          categories: categoriesArray
-        };
+        if (barOrientation === 'horizontal') {
+          defaultOptions.yaxis = {
+            ...defaultOptions.yaxis,
+            categories: categoriesArray
+          };
+        } else {
+          defaultOptions.xaxis = {
+            ...defaultOptions.xaxis,
+            categories: categoriesArray
+          };
+        }
       } catch (error) {
         console.warn('Invalid categories format:', categories);
       }
@@ -921,7 +1359,43 @@ class SithasoApex extends HTMLElement {
       };
     }
 
+    // If series include per-series colors, copy them into options.colors
+    // unless the user explicitly provided options.colors.
     try {
+      const seriesColors = Array.isArray(series) ? series.map(s => s && s.color).filter(Boolean) : [];
+      if (seriesColors.length > 0 && (!defaultOptions.colors || defaultOptions.colors.length === 0)) {
+        defaultOptions.colors = seriesColors;
+        if (defaultOptions.legend && defaultOptions.legend.labels) {
+          defaultOptions.legend.labels.useSeriesColors = true;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
+      // Apply data label orientation (if set) to bar charts
+      if (this.hasAttribute('data-label-orientation')) {
+        defaultOptions.plotOptions = defaultOptions.plotOptions || {};
+        defaultOptions.plotOptions.bar = defaultOptions.plotOptions.bar || {};
+        defaultOptions.plotOptions.bar.dataLabels = defaultOptions.plotOptions.bar.dataLabels || {};
+        defaultOptions.plotOptions.bar.dataLabels.orientation = this.getAttribute('data-label-orientation');
+      }
+      if (this.hasAttribute('data-label-position')) {
+        defaultOptions.plotOptions = defaultOptions.plotOptions || {};
+        defaultOptions.plotOptions.bar = defaultOptions.plotOptions.bar || {};
+        defaultOptions.plotOptions.bar.dataLabels = defaultOptions.plotOptions.bar.dataLabels || {};
+        defaultOptions.plotOptions.bar.dataLabels.position = this.getAttribute('data-label-position');
+      }
+      // Ensure columnWidth is present in the final options before creating the chart
+      try {
+        if (this.columnWidth) {
+          defaultOptions.plotOptions = defaultOptions.plotOptions || {};
+          defaultOptions.plotOptions.bar = defaultOptions.plotOptions.bar || {};
+          defaultOptions.plotOptions.bar.columnWidth = this.columnWidth;
+        }
+      } catch (e) {}
       this.chart = new ApexCharts(container, defaultOptions);
       this.chart.render();
       this._options = defaultOptions; // Store current options for dynamic updates
@@ -942,10 +1416,11 @@ class SithasoApex extends HTMLElement {
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') === 'true';
+    const showDataLabels = this.showDataLabels;
     const xAxisTitle = this.getAttribute('x-axis-title') || '';
     const yAxisTitle = this.getAttribute('y-axis-title') || '';
     const categories = this.getAttribute('categories') || '[]';
+    const dataLabelPositionAttr = this.getAttribute('data-label-position') || 'center';
 
     // Override data labels for realtime charts
     let finalShowDataLabels = showDataLabels;
@@ -973,17 +1448,22 @@ class SithasoApex extends HTMLElement {
 
     // Base options following the provided horizontal bar chart example
     const defaultOptions = {
+      ...this.getBaseDefaultOptions('bar'),
       series: series,
       chart: {
+        ...this.getBaseDefaultOptions('bar').chart,
         type: 'bar',
         height: parseInt(this.getAttribute('height')) || 350,
         toolbar: { show: showToolbar }
       },
       plotOptions: {
         bar: {
-          borderRadius: 4,
-          borderRadiusApplication: 'end',
+          borderRadius: this.borderRadius,
+          borderRadiusApplication: 'around',
           horizontal: true,
+          borderRadiusWhenStacked: 'all',
+          startingShape: 'rounded',
+          endingShape: 'rounded'
         }
       },
       dataLabels: {
@@ -996,7 +1476,7 @@ class SithasoApex extends HTMLElement {
         formatter: function(val) {
           return val.toString();
         },
-        offsetX: 30,
+        offsetX: (dataLabelPositionAttr === 'center') ? 0 : 30,
         dropShadow: {
           enabled: false
         }
@@ -1013,8 +1493,6 @@ class SithasoApex extends HTMLElement {
       xaxis: (() => {
         const xAxisOffsetY = this.getAttribute('x-axis-offsety');
         const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
-        console.log('Bar Chart - Current x-axis title offsetY:', xAxisOffsetY || '2 (default)');
-        console.log('Bar Chart - Applying x-axis label rotate:', xAxisLabelRotate || '0 (default)');
         const xaxisConfig = {
           title: {
             text: xAxisTitle || '',
@@ -1034,23 +1512,27 @@ class SithasoApex extends HTMLElement {
             offsetY: parseInt(this.getAttribute('x-axis-label-rotate-offsety')) || 25
           };
         }
-        
+
+        // Ensure labels are visible by default
+        xaxisConfig.labels = {
+          ...(xaxisConfig.labels || {}),
+          show: true
+        };
+
         return xaxisConfig;
       })(),
+      // yaxis: keep title/labels; categories will be attached to xaxis.categories
       yaxis: {
-        categories: categories ? JSON.parse(categories) : ['South Korea', 'Canada', 'United Kingdom', 'Netherlands', 'Italy', 'France', 'Japan', 'United States', 'China', 'Germany'],
         title: {
           text: yAxisTitle || '',
           style: {
             fontSize: '14px',
             color: '#333'
           }
+        },
+        labels: {
+          show: true
         }
-      },
-      tooltip: {
-        enabled: true,
-        theme: 'light',
-        style: { fontSize: '12px' }
       },
       grid: {
         show: true,
@@ -1081,7 +1563,87 @@ class SithasoApex extends HTMLElement {
       };
     }
 
+    
+    // Ensure bar corner radius default when not provided in options
     try {
+      defaultOptions.plotOptions = defaultOptions.plotOptions || {};
+      defaultOptions.plotOptions.bar = defaultOptions.plotOptions.bar || {};
+      if (typeof defaultOptions.plotOptions.bar.borderRadius === 'undefined') {
+        defaultOptions.plotOptions.bar.borderRadius = 4;
+      }
+      // Apply optional column-width override if provided via attribute
+      if (this.columnWidth) {
+        defaultOptions.plotOptions.bar.columnWidth = this.columnWidth;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // If series include per-series colors, copy them into options.colors
+    // unless the user explicitly provided options.colors.
+    try {
+      const seriesColors = Array.isArray(series) ? series.map(s => s && s.color).filter(Boolean) : [];
+      if (seriesColors.length > 0 && (!defaultOptions.colors || defaultOptions.colors.length === 0)) {
+        defaultOptions.colors = seriesColors;
+        if (defaultOptions.legend && defaultOptions.legend.labels) {
+          defaultOptions.legend.labels.useSeriesColors = true;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Apply stacking if requested
+    if (this.getAttribute('stacked') === 'true') {
+      defaultOptions.chart = {
+        ...defaultOptions.chart,
+        stacked: true
+      };
+      // Prefer rounding all stacked segments for bar charts
+      defaultOptions.plotOptions = {
+        ...defaultOptions.plotOptions,
+        bar: {
+          ...((defaultOptions.plotOptions && defaultOptions.plotOptions.bar) || {}),
+          borderRadiusWhenStacked: 'all',
+          borderRadius: this.borderRadius,
+          borderRadiusApplication: 'around',
+          startingShape: 'rounded',
+          endingShape: 'rounded'
+        }
+      };
+    }
+
+    // Attach parsed categories to yaxis.categories for horizontal bar charts.
+    // ApexCharts handles horizontal bars with categories on y-axis.
+    try {
+      const parsed = categories ? JSON.parse(categories) : null;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        defaultOptions.yaxis = {
+          ...(defaultOptions.yaxis || {}),
+          categories: parsed
+        };
+        // Keep xaxis.categories in sync for consistency
+        defaultOptions.xaxis = {
+          ...(defaultOptions.xaxis || {}),
+          categories: parsed
+        };
+      }
+    } catch (e) {
+      // ignore invalid categories
+    }
+
+
+
+    try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
+      // Ensure columnWidth is present in the final options before creating the chart
+      try {
+        if (this.columnWidth) {
+          defaultOptions.plotOptions = defaultOptions.plotOptions || {};
+          defaultOptions.plotOptions.bar = defaultOptions.plotOptions.bar || {};
+          defaultOptions.plotOptions.bar.columnWidth = this.columnWidth;
+        }
+      } catch (e) {}
       this.chart = new ApexCharts(container, defaultOptions);
       this.chart.render();
       this._options = defaultOptions; // Store current options for dynamic updates
@@ -1102,7 +1664,7 @@ class SithasoApex extends HTMLElement {
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') !== 'false';
+    const showDataLabels = this.showDataLabels;
 
     // Override data labels for realtime charts
     let finalShowDataLabels = showDataLabels;
@@ -1188,6 +1750,7 @@ class SithasoApex extends HTMLElement {
     }
 
     try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
       this.chart = new ApexCharts(container, {
         ...defaultOptions,
         series: series
@@ -1211,7 +1774,7 @@ class SithasoApex extends HTMLElement {
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') !== 'false';
+    const showDataLabels = this.showDataLabels;
     const donutShowTotal = this.getAttribute('donut-show-total') !== 'false';
 
     // Override data labels for realtime charts
@@ -1310,6 +1873,7 @@ class SithasoApex extends HTMLElement {
     }
 
     try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
       this.chart = new ApexCharts(container, {
         ...defaultOptions,
         series: series
@@ -1329,11 +1893,12 @@ class SithasoApex extends HTMLElement {
     if (!this.validateChartData(data)) return;
 
     const series = this.formatRadialBarSeries(data);
-    const showLegend = this.getAttribute('show-legend') !== 'false';
+    // Default radialBar legend hidden; only show when `show-legend="true"` is set
+    const showLegend = this.getAttribute('show-legend') === 'true';
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') === 'true';
+    const showDataLabels = this.showDataLabels;
     const hollowSize = this.getAttribute('hollow-size') || '50%';
     const dashedRadial = this.getAttribute('dashed-radial') === 'true';
     const trackWidth = this.getAttribute('track-width') || '97%';
@@ -1389,6 +1954,18 @@ class SithasoApex extends HTMLElement {
           track: {
             strokeWidth: trackWidth
           }
+          ,
+          startAngle: this.startAngle,
+          endAngle: this.endAngle,
+          barLabels: {
+            enabled: this.barLabels === true,
+            useSeriesColors: true,
+            offsetX: -8,
+            fontSize: '14px',
+            formatter: function(seriesName, opts) {
+              return seriesName + ":  " + (opts && opts.w && opts.w.globals && opts.w.globals.series ? opts.w.globals.series[opts.seriesIndex] : '');
+            }
+          }
         }
       },
       ...(dashedRadial && {
@@ -1440,6 +2017,7 @@ class SithasoApex extends HTMLElement {
     }
 
     try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
       this.chart = new ApexCharts(container, {
         ...defaultOptions,
         series: series
@@ -1463,7 +2041,7 @@ class SithasoApex extends HTMLElement {
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') === 'true';
+    const showDataLabels = this.showDataLabels;
     const xAxisTitle = this.getAttribute('x-axis-title') || '';
     const yAxisTitle = this.getAttribute('y-axis-title') || '';
     const curve = this.getAttribute('curve') || 'smooth';
@@ -1553,7 +2131,6 @@ class SithasoApex extends HTMLElement {
     // Apply axis titles after merging options to ensure they're not overridden
     if (xAxisTitle) {
       const xAxisOffsetY = this.getAttribute('x-axis-offsety');
-      console.log('Scatter Chart - Current x-axis title offsetY:', xAxisOffsetY || '2 (default)');
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
         title: {
@@ -1568,10 +2145,9 @@ class SithasoApex extends HTMLElement {
     }
 
     // Apply x-axis label rotation if specified
-    // Apply x-axis label rotation if specified
+    
     const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
     if (xAxisLabelRotate && parseInt(xAxisLabelRotate) !== 0) {
-      console.log('Scatter Chart - Applying x-axis label rotate:', xAxisLabelRotate);
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
         position: 'bottom',
@@ -1618,6 +2194,7 @@ class SithasoApex extends HTMLElement {
     }
 
     try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
       this.chart = new ApexCharts(container, {
         ...defaultOptions,
         series: series
@@ -1636,13 +2213,38 @@ class SithasoApex extends HTMLElement {
 
     if (!this.validateChartData(data)) return;
 
-    const series = this.formatSeries(data, 'radar');
+    // Normalize input so radar receives numeric arrays and categories are set.
+    // Accept these shapes:
+    // - Single series object: {A:10,B:20} -> series: [{name:'Series 1', data: [10,20]}], categories: ['A','B']
+    // - Multiple series array: [{name:'S1', data: {A:1,B:2}}, {name:'S2', data: {A:3,B:4}}]
+    // - Existing array formats remain supported.
+    let radarCategories = this.categories || [];
+    let radarSeries = null;
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0].name && data[0].data && typeof data[0].data === 'object' && !Array.isArray(data[0].data)) {
+      // Multiple named series with object-shaped data
+      // Derive categories from first series if not provided
+      const firstKeys = Object.keys(data[0].data);
+      if ((!radarCategories || radarCategories.length === 0) && firstKeys.length > 0) radarCategories = firstKeys.slice();
+      radarSeries = data.map(s => ({
+        name: s.name || 'Series',
+        data: Array.isArray(s.data) ? s.data.slice() : Object.values(s.data)
+      }));
+    } else if (!Array.isArray(data) && data && typeof data === 'object') {
+      // Single-series object form
+      radarCategories = Object.keys(data);
+      radarSeries = [{ name: this.getAttribute('title') || 'Series 1', data: Object.values(data) }];
+    } else {
+      // Fallback to existing formatter for arrays/other forms
+      radarSeries = this.formatSeries(data, 'radar');
+    }
+
+    const series = radarSeries;
     const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') === 'true';
-    const categories = this.categories || [];
+    const showDataLabels = this.showDataLabels;
+    const categories = radarCategories || [];
 
     // Realtime mode adjustments
     let finalShowDataLabels = showDataLabels;
@@ -1703,8 +2305,23 @@ class SithasoApex extends HTMLElement {
     // Ensure user-provided `options.chart` cannot remove the required chart type.
     defaultOptions.chart = { ...(defaultOptions.chart || {}), ...(options && options.chart ? options.chart : {}), type: 'radar' };
 
+    // If series include per-series colors, copy them into options.colors
+    // unless the user explicitly provided options.colors.
+    try {
+      const seriesColors = Array.isArray(series) ? series.map(s => s && s.color).filter(Boolean) : [];
+      if (seriesColors.length > 0 && (!defaultOptions.colors || defaultOptions.colors.length === 0)) {
+        defaultOptions.colors = seriesColors;
+        if (defaultOptions.legend && defaultOptions.legend.labels) {
+          defaultOptions.legend.labels.useSeriesColors = true;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
     
     try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
       this.chart = new ApexCharts(container, {
         ...defaultOptions,
         series: series
@@ -1723,30 +2340,31 @@ class SithasoApex extends HTMLElement {
 
     if (!this.validateChartData(data)) return;
 
-    // For polarArea charts we require `data` to be an array (not an object).
-    // The project standard for polar/pie-like charts is array input
-    // (e.g. `[44, 55, 13, 43]` or `[{name: 'A', data: 10}, ...]`). Bail out
-    // with a helpful message if the consumer passes an object.
-    if (!Array.isArray(data)) {
-      this.showError('PolarArea chart requires `data` to be an array (e.g. [44,55,13]).');
-      return;
+    // Support both array and object-shaped inputs for polarArea.
+    // If an object is provided (e.g. {A:10,B:20}), convert it to an
+    // array of values and extract labels like pie/donut.
+    let polarLabelsFromObj = null;
+    let inputData = data;
+    if (!Array.isArray(data) && data && typeof data === 'object') {
+      polarLabelsFromObj = Object.keys(data);
+      inputData = Object.values(data);
     }
 
     // Series values (pie-style)
-    const series = this.formatPieSeries(data);
-    // Determine labels.
-    // Expected: `categories` is an array when provided. Otherwise,
-    // derive labels from array `data` payload (objects with .name, or
-    // [label,value] pairs). Fall back to generic `Item N` labels.
+    const series = this.formatPieSeries(inputData);
+    // Determine labels. Prefer explicit `categories` attr, then object-derived labels,
+    // then derive from array-shaped `inputData` payload, otherwise fall back to generic labels.
     let labels = [];
     const cats = this.categories;
     if (Array.isArray(cats) && cats.length > 0) {
       labels = cats.slice();
-    } else if (Array.isArray(data) && data.length > 0) {
-      if (typeof data[0] === 'object' && data[0].name) {
-        labels = data.map(item => item.name);
-      } else if (Array.isArray(data[0]) && data[0].length >= 2) {
-        labels = data.map(item => item[0]);
+    } else if (polarLabelsFromObj && polarLabelsFromObj.length > 0) {
+      labels = polarLabelsFromObj.slice();
+    } else if (Array.isArray(inputData) && inputData.length > 0) {
+      if (typeof inputData[0] === 'object' && inputData[0].name) {
+        labels = inputData.map(item => item.name);
+      } else if (Array.isArray(inputData[0]) && inputData[0].length >= 2) {
+        labels = inputData.map(item => item[0]);
       } else {
         labels = series.map((v, i) => `Item ${i + 1}`);
       }
@@ -1758,6 +2376,28 @@ class SithasoApex extends HTMLElement {
     if (Array.isArray(series)) {
       if (labels.length > series.length) labels = labels.slice(0, series.length);
       while (labels.length < series.length) labels.push(`Item ${labels.length + 1}`);
+    }
+
+    // Reorder series/labels so display can be arranged by value (staggered appearance).
+    // This sorts pairs by value descending so large/small values alternate visually.
+    try {
+      if (Array.isArray(series) && series.length > 1) {
+        const pairs = series.map((v, i) => ({ value: v, label: labels[i] || `Item ${i+1}`, color: (Array.isArray(data) && typeof data[i] === 'object') ? data[i].color : null }));
+        // sort descending by value
+        pairs.sort((a, b) => b.value - a.value);
+        // write back
+        series = pairs.map(p => p.value);
+        labels = pairs.map(p => p.label);
+        // if no colors were provided via colorsAttr/options, prefer per-item colors in this new order
+        const perItemColors = pairs.map(p => p.color).filter(Boolean);
+        if (perItemColors.length > 0 && (!colorsFromAttr)) {
+          // will be applied later into defaultOptions.colors
+          // store temporarily on dataColors variable used below
+          var _reorderedDataColors = perItemColors;
+        }
+      }
+    } catch (e) {
+      // non-fatal
     }
 
     // Parse optional `colors` attribute (JSON array) so consumers can pass
@@ -1777,7 +2417,7 @@ class SithasoApex extends HTMLElement {
     const legendPosition = this.getAttribute('legend-position') || 'bottom';
     const showToolbar = this.getAttribute('show-toolbar') !== 'false';
     const title = this.getAttribute('title') || '';
-    const showDataLabels = this.getAttribute('show-data-labels') === 'true';
+    const showDataLabels = this.showDataLabels;
 
     const legendOptions = {
       show: showLegend,
@@ -1829,14 +2469,18 @@ class SithasoApex extends HTMLElement {
     defaultOptions.chart = { ...(defaultOptions.chart || {}), ...(options && options.chart ? options.chart : {}), type: 'polarArea' };
 
     // Allow per-item colors (object items with .color) like pie/donut
-    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0].name) {
-      const dataColors = data.map(item => item.color).filter(Boolean);
-      if (dataColors && dataColors.length > 0 && (!defaultOptions.colors || defaultOptions.colors.length === 0)) {
-        defaultOptions.colors = dataColors;
+    if (Array.isArray(inputData) && inputData.length > 0 && typeof inputData[0] === 'object' && inputData[0].name) {
+      const dataColors = inputData.map(item => item.color).filter(Boolean);
+      // prefer explicit per-item colors from data objects, but if we reordered above
+      // and produced _reorderedDataColors, prefer that order when no explicit colorsAttr/options exist.
+      const finalDataColors = (typeof _reorderedDataColors !== 'undefined' && _reorderedDataColors.length > 0) ? _reorderedDataColors : dataColors;
+      if (finalDataColors && finalDataColors.length > 0 && (!defaultOptions.colors || defaultOptions.colors.length === 0)) {
+        defaultOptions.colors = finalDataColors;
       }
     }
 
     try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
       this.chart = new ApexCharts(container, {
         ...defaultOptions,
         series: series
@@ -1854,7 +2498,11 @@ class SithasoApex extends HTMLElement {
     if (this.chart) {
       // For updates, we need to recreate the chart with new options
       // since individual attributes like legend settings need to be reapplied
-      this.chart.destroy();
+      try {
+        this.chart.destroy();
+      } catch (error) {
+        console.warn('Error destroying chart during update:', error);
+      }
       this.chart = null;
       // Clear the container and recreate
       this.innerHTML = '';
@@ -1913,10 +2561,12 @@ class SithasoApex extends HTMLElement {
     // Handle different data formats based on chart type
     if (Array.isArray(data)) {
       if (data.length > 0 && typeof data[0] === 'object' && data[0].name) {
-        // Multiple series: [{"name": "Series 1", "data": [1, 2, 3]}] or [{"name": "Series 1", "data": {"Jan": 1, "Feb": 2}}]
+        // Multiple series: preserve per-series color and dashed flags so charts like radar use provided colors
         return data.map(series => ({
           name: series.name,
-          data: this.formatSingleSeries(series.data, chartType)
+          data: this.formatSingleSeries(series.data, chartType),
+          color: series.color,
+          dashed: series.dashed || false
         }));
       } else if (chartType === 'pie' || chartType === 'donut' || chartType === 'radialBar') {
         // Pie/Donut/Radial charts: [["Label", value], ["Label", value]] or [value, value, value]
@@ -1997,6 +2647,8 @@ class SithasoApex extends HTMLElement {
 
   // Public API methods
   updateData(newData) {
+    // Update via attribute, which triggers attributeChangedCallback
+    // This ensures consistent behavior whether updating via API or DOM
     this.setAttribute('data', JSON.stringify(newData));
   }
 
@@ -2029,6 +2681,390 @@ class SithasoApex extends HTMLElement {
       return this.chart.data;
     }
     return null;
+  }
+
+  // Clear chart data and reset axes
+  clearData() {
+    if (this.chart) {
+      // Clear the series data
+      this.chart.updateSeries([]);
+
+      // Reset x-axis and y-axis to default state
+      const defaultAxes = {
+        xaxis: {
+          tooltip: { enabled: false },
+          labels: {}
+        },
+        yaxis: {
+          tooltip: { enabled: false },
+          labels: {}
+        }
+      };
+
+      this.chart.updateOptions(defaultAxes);
+    }
+
+    // Clear internal data and reset attributes
+    this._data = null;
+    this._seriesMap.clear(); // Clear stored series
+    this._categories = []; // Clear stored categories
+    this._colors = []; // Clear stored colors
+    this.removeAttribute('data');
+    this.removeAttribute('categories');
+  }
+
+  // Add series to memory for runtime management
+  addSeries(seriesName, seriesColor, values) {
+    const series = {
+      name: seriesName,
+      data: values,
+      color: seriesColor
+    };
+    this._seriesMap.set(seriesName, series);
+  }
+
+  // Add series value to memory (B4X compatible method)
+  AddSeriesValue(SeriesName, value) {
+    const series = {
+      name: SeriesName,
+      data: value
+    };
+    this._seriesMap.set(SeriesName, series);
+  }
+
+  // Add XY series (B4X compatible method)
+  AddXY(X, y) {
+    this.AddSeriesValue(X, y);
+  }
+
+  // Set series color (B4X compatible method)
+  SetSeriesColor(seriesName, color) {
+    if (this._seriesMap.has(seriesName)) {
+      const series = this._seriesMap.get(seriesName);
+      series.color = color;
+      this._seriesMap.set(seriesName, series);
+    }
+  }
+
+  // Add series category value matrix (B4X compatible method)
+  AddSeriesCategoryValue(seriesName, catName, value) {
+    let seriesValues = [];
+    
+    // The series does not exist, create it
+    if (!this._seriesMap.has(seriesName)) {
+      seriesValues = [];
+      // Initialize with empty strings for all categories
+      for (let i = 0; i < this._categories.length; i++) {
+        seriesValues.push("");
+      }
+      const series = {
+        name: seriesName,
+        data: seriesValues
+      };
+      this._seriesMap.set(seriesName, series);
+    }
+    
+    // Get the series data
+    const series = this._seriesMap.get(seriesName);
+    seriesValues = series.data;
+    
+    // What is the category position
+    const catPos = this._categories.indexOf(catName);
+    if (catPos !== -1) {
+      // Update the category value at that position
+      seriesValues[catPos] = value;
+      series.data = seriesValues;
+      // Save the latest series information back
+      this._seriesMap.set(seriesName, series);
+    }
+  }
+
+  // Build options to update during refresh from current attributes
+  buildRefreshOptionsFromAttributes() {
+    const chartType = this.getAttribute('type') || 'line';
+    const options = {};
+
+    // Basic chart options that can be updated (only apply if attribute present)
+    const chartAttrPresent = this.hasAttribute('height') || this.hasAttribute('width') || this.hasAttribute('show-toolbar');
+    if (chartAttrPresent) {
+      options.chart = {};
+      if (this.hasAttribute('height')) options.chart.height = parseInt(this.getAttribute('height')) || 350;
+      if (this.hasAttribute('width')) options.chart.width = this.getAttribute('width') || '100%';
+      if (this.hasAttribute('show-toolbar')) options.chart.toolbar = { show: this.getAttribute('show-toolbar') !== 'false' };
+    }
+
+    // Title
+    if (this.hasAttribute('title')) {
+      options.title = {
+        text: this.getAttribute('title') || '',
+        align: 'left',
+        style: {
+          fontSize: '16px',
+          fontWeight: 'bold',
+          color: '#333'
+        }
+      };
+    }
+
+    // Legend (only set if attributes present to avoid overriding defaults)
+    if (this.hasAttribute('show-legend') || this.hasAttribute('legend-position')) {
+      options.legend = {
+        show: this.getAttribute('show-legend') !== 'false',
+        position: this.getAttribute('legend-position') || 'bottom',
+        horizontalAlign: 'center',
+        verticalAlign: this.getAttribute('legend-position') === 'top' ? 'top' : 'bottom',
+        floating: false,
+        offsetX: 0,
+        offsetY: 0,
+        labels: {
+          colors: '#333',
+          useSeriesColors: false
+        }
+      };
+    }
+
+    // Data labels
+    if (this.hasAttribute('show-data-labels')) {
+      options.dataLabels = { enabled: this.showDataLabels };
+    }
+
+    // Theme (ApexCharts expects an object for theme via updateOptions)
+    if (this.hasAttribute('theme')) options.theme = { mode: this.getAttribute('theme') || 'light' };
+
+    // Cartesian chart specific options
+    if (['line', 'area', 'bar', 'column', 'scatter'].includes(chartType)) {
+      if (this.hasAttribute('x-axis-title') || this.hasAttribute('x-axis-offsety') || this.hasAttribute('x-axis-label-rotate') || this.hasAttribute('x-axis-label-rotate-offsety')) {
+        options.xaxis = {};
+        if (this.hasAttribute('x-axis-title')) options.xaxis.title = { text: this.getAttribute('x-axis-title') || '' };
+        if (this.hasAttribute('x-axis-offsety')) options.xaxis.offsetY = parseInt(this.getAttribute('x-axis-offsety')) || 0;
+        if (this.hasAttribute('x-axis-label-rotate') || this.hasAttribute('x-axis-label-rotate-offsety')) {
+          options.xaxis.labels = {};
+          if (this.hasAttribute('x-axis-label-rotate')) options.xaxis.labels.rotate = parseInt(this.getAttribute('x-axis-label-rotate')) || 0;
+          if (this.hasAttribute('x-axis-label-rotate-offsety')) options.xaxis.labels.offsetY = parseInt(this.getAttribute('x-axis-label-rotate-offsety')) || 0;
+        }
+      }
+
+      if (this.hasAttribute('y-axis-title')) {
+        options.yaxis = {};
+        options.yaxis.title = { text: this.getAttribute('y-axis-title') || '' };
+      }
+
+      // Chart type specific options
+      if (chartType === 'line' || chartType === 'area') {
+        if (this.hasAttribute('curve') || this.hasAttribute('line-width')) {
+          options.stroke = {};
+          if (this.hasAttribute('curve')) options.stroke.curve = this.getAttribute('curve') || 'smooth';
+          if (this.hasAttribute('line-width')) options.stroke.width = parseInt(this.getAttribute('line-width')) || 3;
+        }
+
+        if (chartType === 'area' && this.hasAttribute('gradient')) {
+          options.fill = { type: this.getAttribute('gradient') === 'true' ? 'gradient' : 'solid' };
+        }
+      }
+
+      if (chartType === 'bar' || chartType === 'column') {
+        if (this.hasAttribute('bar-orientation') || this.hasAttribute('column-width') || this.hasAttribute('border-radius')) {
+          options.plotOptions = { bar: {} };
+          if (this.hasAttribute('bar-orientation')) options.plotOptions.bar.horizontal = this.getAttribute('bar-orientation') === 'horizontal';
+          if (this.hasAttribute('column-width')) options.plotOptions.bar.columnWidth = this.getAttribute('column-width') || '60%';
+          if (this.hasAttribute('border-radius')) options.plotOptions.bar.borderRadius = parseInt(this.getAttribute('border-radius'));
+        }
+
+        // Data label orientation for bar/column charts: set only when attribute present
+        if (this.hasAttribute('data-label-orientation')) {
+          options.plotOptions = options.plotOptions || {};
+          options.plotOptions.bar = options.plotOptions.bar || {};
+          options.plotOptions.bar.dataLabels = options.plotOptions.bar.dataLabels || {};
+          options.plotOptions.bar.dataLabels.orientation = this.getAttribute('data-label-orientation');
+        }
+        // Data label position for bar/column charts (top/center/bottom)
+        if (this.hasAttribute('data-label-position')) {
+          options.plotOptions = options.plotOptions || {};
+          options.plotOptions.bar = options.plotOptions.bar || {};
+          options.plotOptions.bar.dataLabels = options.plotOptions.bar.dataLabels || {};
+          options.plotOptions.bar.dataLabels.position = this.getAttribute('data-label-position');
+        }
+
+        if (this.getAttribute('stacked') === 'true') {
+          if (!options.chart) options.chart = {};
+          options.chart.stacked = true;
+        }
+      }
+
+      if (chartType === 'scatter' && this.hasAttribute('marker-size')) {
+        options.markers = { size: parseInt(this.getAttribute('marker-size')) || 6 };
+      }
+    }
+
+    // Circular chart specific options
+    if (['pie', 'donut', 'radialBar'].includes(chartType)) {
+      if (this.hasAttribute('start-angle') || this.hasAttribute('end-angle')) {
+        options.plotOptions = { pie: {} };
+        if (this.hasAttribute('start-angle')) options.plotOptions.pie.startAngle = parseInt(this.getAttribute('start-angle')) || 0;
+        if (this.hasAttribute('end-angle')) options.plotOptions.pie.endAngle = parseInt(this.getAttribute('end-angle')) || 360;
+      }
+
+      if (chartType === 'donut') {
+        if (!options.plotOptions) options.plotOptions = {};
+        if (!options.plotOptions.pie) options.plotOptions.pie = {};
+        if (!options.plotOptions.pie.donut) options.plotOptions.pie.donut = {};
+        if (this.hasAttribute('hollow-size')) options.plotOptions.pie.donut.size = this.getAttribute('hollow-size') || '50%';
+        if (this.hasAttribute('donut-show-total')) {
+          options.plotOptions.pie.donut.labels = { show: this.getAttribute('donut-show-total') === 'true', total: { show: true, label: 'Total' } };
+        }
+      }
+
+      if (chartType === 'radialBar') {
+        if (!options.plotOptions) options.plotOptions = {};
+        if (this.hasAttribute('hollow-size') || this.hasAttribute('track-width') || this.hasAttribute('radial-data-labels') || this.hasAttribute('dashed-radial')) {
+          options.plotOptions.radialBar = options.plotOptions.radialBar || {};
+          if (this.hasAttribute('hollow-size')) options.plotOptions.radialBar.hollow = { size: this.getAttribute('hollow-size') || '50%' };
+          if (this.hasAttribute('track-width')) options.plotOptions.radialBar.track = { show: true, width: parseInt(this.getAttribute('track-width')) || 97 };
+          if (this.hasAttribute('radial-data-labels')) options.plotOptions.radialBar.dataLabels = { show: this.getAttribute('radial-data-labels') === 'true' };
+          if (this.getAttribute('dashed-radial') === 'true') {
+            if (!options.plotOptions.radialBar.track) options.plotOptions.radialBar.track = { show: true };
+            options.plotOptions.radialBar.track.strokeWidth = '50%';
+          }
+        }
+      }
+    }
+
+    // Realtime settings
+    if (this.getAttribute('realtime') === 'true') {
+      if (!options.chart) options.chart = {};
+      options.chart.animations = { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } };
+      options.chart.zoom = { enabled: false };
+      if (!options.dataLabels) options.dataLabels = {};
+      options.dataLabels.enabled = false; // Disable data labels for realtime
+    }
+
+    return options;
+  }
+
+  // Refresh chart with all stored series
+  refresh() {
+    if (this.chart) {
+      const chartType = this.getAttribute('type') || 'line';
+      
+      // Build options to update from current attributes
+      const optionsToUpdate = this.buildRefreshOptionsFromAttributes();
+
+      if (chartType === 'pie' || chartType === 'donut' || chartType === 'radialBar') {
+        // For circular charts, create specific runtime values
+        const runtimeSeriesObjects = Array.from(this._seriesMap.values()).map(series => ({
+          name: series.name,
+          data: Array.isArray(series.data) ? series.data[0] : series.data,
+          color: series.color
+        }));
+
+        // Build arrays required by ApexCharts
+        const pieSeries = runtimeSeriesObjects.map(s => s.data || 0);
+        const pieLabels = runtimeSeriesObjects.map(s => s.name);
+        const pieColors = runtimeSeriesObjects.map(s => s.color).filter(Boolean);
+
+        // Set DOM attributes to reflect runtime state (so external code reads current values)
+        try {
+          const attrData = runtimeSeriesObjects.map(s => ({ name: s.name, data: s.data, color: s.color }));
+          if (attrData.length > 0) this.setAttribute('data', JSON.stringify(attrData));
+          else this.removeAttribute('data');
+        } catch (err) {
+          // ignore attribute serialization errors
+        }
+
+        if (pieColors.length > 0) {
+          try { this.setAttribute('colors', JSON.stringify(pieColors)); } catch(e) {}
+        } else {
+          try { this.removeAttribute('colors'); } catch(e) {}
+        }
+
+        // Debug logging for runtime values
+        // Logging removed in production; leave optional debug points if needed
+        // Apply to options and series in proper order
+        optionsToUpdate.labels = pieLabels;
+        if (pieColors.length > 0) optionsToUpdate.colors = pieColors;
+        // Apply options first so labels/colors are present before data is updated
+        try {
+          if (Object.keys(optionsToUpdate).length > 0) this.chart.updateOptions(optionsToUpdate);
+          this.chart.updateSeries(pieSeries);
+        } catch (err) {
+          console.error('Error applying pie refresh updates:', err.message || err, err.stack || 'no stack');
+        }
+        return; // We've already updated and returned
+      } else {
+        // For other chart types, convert runtime map to series array
+        const runtimeSeriesObjects = Array.from(this._seriesMap.values()).map(series => {
+          const data = Array.isArray(series.data) ? series.data.slice() : [series.data];
+          return { name: series.name, data: data, color: series.color };
+        });
+
+        // Set DOM attributes for integration/consistency
+        try {
+          if (runtimeSeriesObjects.length > 0) this.setAttribute('data', JSON.stringify(runtimeSeriesObjects));
+          else this.removeAttribute('data');
+        } catch(e) {}
+
+        // Ensure categories are reflected as attribute as well
+        try {
+          if (this._categories.length > 0) this.setAttribute('categories', JSON.stringify(this._categories));
+          else this.removeAttribute('categories');
+        } catch (e) {}
+
+        // Ensure colors attribute reflects runtime
+        try {
+          if (this._colors.length > 0) this.setAttribute('colors', JSON.stringify(this._colors));
+          else this.removeAttribute('colors');
+        } catch(e) {}
+
+        // Logging removed in production; leave optional debug points if needed
+        // Update options first (xaxis categories, colors) then update series data
+        if (this._categories.length > 0) optionsToUpdate.xaxis = { ...optionsToUpdate.xaxis, categories: this._categories };
+        if (this._colors.length > 0) optionsToUpdate.colors = this._colors;
+        try {
+          if (Object.keys(optionsToUpdate).length > 0) this.chart.updateOptions(optionsToUpdate);
+          this.chart.updateSeries(runtimeSeriesObjects);
+        } catch (err) {
+          console.error('Error applying cartesian refresh updates:', err.message || err, err.stack || 'no stack');
+        }
+        return;
+      }
+
+      // Update categories if any are stored (only for cartesian charts)
+      if ((chartType !== 'pie' && chartType !== 'donut' && chartType !== 'radialBar') && this._categories.length > 0) {
+        optionsToUpdate.xaxis = {
+          ...optionsToUpdate.xaxis,
+          categories: this._categories
+        };
+      }
+
+      // Update colors if any are stored
+      if (this._colors.length > 0) {
+        optionsToUpdate.colors = this._colors;
+      }
+
+      // Apply all options updates
+      if (Object.keys(optionsToUpdate).length > 0) {
+        this.chart.updateOptions(optionsToUpdate);
+      }
+    }
+  }
+
+  // Add a single category to memory
+  addCategory(catName) {
+    this._categories.push(catName);
+  }
+
+  // Add multiple categories to memory
+  addCategories(cats) {
+    if (Array.isArray(cats)) {
+      this._categories.push(...cats);
+    }
+  }
+
+  // Add colors for series (B4X compatible method)
+  AddColors(cols) {
+    if (Array.isArray(cols)) {
+      this._colors.push(...cols);
+    }
   }
 }
 
