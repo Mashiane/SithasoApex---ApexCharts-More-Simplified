@@ -5,7 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SithasoApex Component - Complete Demo</title>
-  <script src="apexcharts.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.css" rel="stylesheet"></link>
   <script src="SithasoApex.js"></script>
   <style>
     /* Enable smooth scrolling for anchor navigation */
@@ -15,7 +16,6 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
       background: #f5f5f5;
@@ -38,12 +38,35 @@
 
     .chart-grid {
       display: grid;
-      grid-template-columns: 1fr;
-      /* Always show a single chart per row */
+      grid-template-columns: repeat(2, 1fr);
+      /* Show two charts per row by default */
       gap: 20px;
-      max-width: 900px;
+      width: 90%;
       /* keep demo readable */
       margin: 0 auto;
+    }
+
+    /* Responsive: single column on small screens */
+    @media (max-width: 900px) {
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Split grid for side-by-side example pairs */
+    .example-split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .example-runtime-controls {
+      margin-bottom: 8px;
+    }
+
+    .runtime-heading {
+      margin-top: 0;
     }
 
     .controls {
@@ -158,21 +181,92 @@
       outline: 3px solid rgba(0, 135, 251, 0.25);
     }
   </style>
+  <style>
+    /* Example navigation custom tooltips */
+    .examples-nav .tooltip-anchor {
+      position: relative;
+    }
+
+    .examples-nav a[data-title] {
+      position: relative;
+      outline: none;
+    }
+
+    .examples-nav a[data-title]::after {
+      content: attr(data-title);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(6px) scale(.96);
+      background: rgba(0, 0, 0, 0.86);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      font-size: 12px;
+      line-height: 1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms ease, transform 120ms ease;
+      z-index: 9999;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .examples-nav a[data-title]::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 2px);
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.86);
+      transform: rotate(45deg) translateY(1px);
+      border-radius: 2px;
+      opacity: 0;
+      transition: opacity 120ms ease;
+      z-index: 9999;
+    }
+
+    .examples-nav a[data-title]:hover::after,
+    .examples-nav a[data-title]:focus::after,
+    .examples-nav a[data-title]:focus-visible::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    .examples-nav a[data-title]:hover::before,
+    .examples-nav a[data-title]:focus::before,
+    .examples-nav a[data-title]:focus-visible::before {
+      opacity: 1;
+      transform: rotate(45deg) translateY(1px);
+    }
+
+    /* Small responsive adjustments */
+    @media (max-width: 600px) {
+      .examples-nav a[data-title]::after {
+        font-size: 11px;
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  </style>
   <!-- Prism.js for syntax highlighting of example code blocks -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
 
 <body>
   <h1>🎯 SithasoApex Component - Complete Demo</h1>
-  <p class="intro-muted">Vanilla JavaScript web component for beautiful, responsive charts</p>
+  <p class="intro-muted" style="text-align:center;">Vanilla JavaScript web component for beautiful, responsive charts
+  </p>
 
   <!-- Quick example navigation: click a number to jump to that example -->
   <nav class="examples-nav" aria-label="Example navigation" style="text-align:center; margin:12px 0;">
     <div
       style="display:inline-block; background:#fff; padding:8px 10px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,0.06);">
-      <!-- Numbers will jump to each example heading -->
       <span style="color:#666; margin-right:8px; font-weight:600;">Examples:</span>
-      <!-- Generated links 1..29 -->
+      <!-- Generated links 1..31 -->
       <a href="#example-1"
         style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">1</a>
       <a href="#example-2"
@@ -237,8 +331,40 @@
         style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">30</a>
       <a href="#example-31"
         style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">31</a>
+      <a href="#example-32"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">32</a>
+      <a href="#example-33"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">33</a>
+      <a href="#example-34"
+        style="text-decoration:none; display:inline-block; margin:0 4px; padding:6px 8px; background:#008FFB; color:#fff; border-radius:4px;">34</a>
     </div>
+
+    <!-- runtime-19-1 removed -->
+
+    <!-- runtime-17-1 removed -->
+
+    <!-- runtime-16-1 removed -->
+
+    <!-- runtime-15-1 removed -->
+
+    <!-- runtime-14-1 removed -->
+
+    <!-- runtime-13-1 removed -->
+
+
   </nav>
+
+
+
+
+
+
+
+
+
+
+
+
 
   <div class="chart-grid">
     <div class="chart-container">
@@ -249,6 +375,7 @@
         data='[{"name": "Daily Visitors", "data": [1200, 1350, 1180, 1420, 1680, 1890, 2100], "color": "#008FFB"}]'
         height="350px">
       </sithaso-apex>
+      
       <div class="code-section">
         <strong>Code</strong>
         <pre class="code-block"><code class="language-html">&lt;sithaso-apex
@@ -257,13 +384,33 @@
   title="Website Traffic"
   x-axis-title="Days"
   y-axis-title="Visitors"
+  y-axis-output-format="thousand"
   categories='["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]'
   data='[{"name": "Daily Visitors", "data": [1200, 1350, 1180, 1420, 1680, 1890, 2100], "color": "#008FFB"}]'
   height="350px"
 &gt;&lt;/sithaso-apex&gt;</code></pre>
       </div>
     </div>
-
+    <div class="chart-container">
+      <h2 id="example-1-1">📈 1.1 Runtime Line Chart</h2>
+      <sithaso-apex id="simple-line-chart-runtime" type="line" title="Website Traffic (Runtime)" x-axis-title="Days"
+        y-axis-title="Visitors" y-axis-output-format="thousand" height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initSimpleLineChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeSimpleLineChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearSimpleLineChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+    const el = document.getElementById('simple-line-chart-runtime');
+    el.clear();
+    el.addCategories(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']);
+    el.addSeries('Daily Visitors', '#008FFB', [1200,1350,1180,1420,1680,1890,2100]);
+    el.refresh();
+    </code></pre>
+      </div>
+    </div>
     <div class="chart-container">
       <h2 id="example-2">📈 2. Simple Line Chart (Rotated XAxis Labels)</h2>
       <sithaso-apex id="line-chart-no-rotation" type="line" title="Website Traffic (Rotated XAxis Labels)"
@@ -273,6 +420,34 @@
         height="350px">
       </sithaso-apex>
     </div>
+
+
+
+
+    <div class="chart-container">
+      <h2 id="example-2-1">📈 2.1 Runtime Rotated Line Chart</h2>
+      <sithaso-apex id="line-chart-no-rotation-runtime" type="line" title="Website Traffic (Rotated, Runtime)"
+        x-axis-title="Days" y-axis-title="Visitors" y-axis-output-format="thousand" x-axis-label-rotate="90"
+        height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initRotatedLineChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeRotatedLineChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearRotatedLineChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('line-chart-no-rotation-runtime');
+el.clear();
+el.addCategories(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']);
+el.addSeries('Daily Visitors', '#008FFB', [1200,1350,1180,1420,1680,1890,2100]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+
+
 
     <div class="chart-container">
       <h2 id="example-3">📈 3. Line Chart (Mutliple Series)</h2>
@@ -285,6 +460,31 @@
     </div>
 
     <div class="chart-container">
+      <h2 id="example-3-1">📈 3.1 Runtime Line Chart (Multiple Series)</h2>
+      <sithaso-apex id="line-chart-runtime" type="line" title="Monthly Revenue Growth (Runtime)" x-axis-title="Months"
+        y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45" x-axis-offsety="-15"
+        height="400px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initMultiLineChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeMultiLineChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearMultiLineChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('line-chart-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May']);
+el.addSeries('Revenue', '#008FFB', [100,120,140,160,180]);
+el.addSeries('Target', '#00E396', [110,130,135,155,175]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+
+
+    <div class="chart-container">
       <h2 id="example-4">📈 4. Straight Line Chart</h2>
       <sithaso-apex id="line-chart-straight" type="line" title="Monthly Revenue Growth (Straight Lines)"
         x-axis-title="Months" y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45"
@@ -295,29 +495,118 @@
     </div>
 
     <div class="chart-container">
+      <h2 id="example-4-1">📈 4.1 Runtime Straight Line Chart</h2>
+      <sithaso-apex id="line-chart-straight-runtime" type="line" title="Monthly Revenue Growth (Straight, Runtime)"
+        x-axis-title="Months" y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45"
+        x-axis-offsety="-15" curve="straight" height="400px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initStraightLineChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeStraightLineChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearStraightLineChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+  const el = document.getElementById('line-chart-straight-runtime');
+  el.clear();
+  el.addCategories(['Jan','Feb','Mar','Apr','May']);
+  el.addSeries('Revenue', '#008FFB', [100,120,140,160,180]);
+  el.addSeries('Target', '#00E396', [110,130,135,155,175]);
+  el.refresh();
+  </code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-5">📈 5. Straight Line Chart</h2>
-      <sithaso-apex id="stock-price-chart" type="line" title="Stock Price Movement" x-axis-title="Time" y-axis-title="Price ($)"
-        y-axis-output-format="money" curve="straight" gradient="false"
+      <sithaso-apex id="stock-price-chart" type="line" title="Stock Price Movement" x-axis-title="Time"
+        y-axis-title="Price ($)" y-axis-output-format="money" curve="straight" gradient="false"
         categories='["9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"]'
-        data='[{"name": "Stock Price", "data": [100, 105, 98, 112, 108, 115, 120], "color": "#FF4560"}]' height="350px">
+          data='[{"name": "Stock Price", "data": [100, 105, 98, 112, 108, 115, 120], "color": "#FF4560"}]' height="350px">
       </sithaso-apex>
+    </div>
+    <div class="chart-container">
+      <h2 id="example-5-1">📈 5.1 Runtime Stock Price Chart</h2>
+      <sithaso-apex id="stock-price-chart-runtime" type="line" title="Stock Price Movement (Runtime)"
+        x-axis-title="Time" y-axis-title="Price ($)" y-axis-output-format="money" curve="straight" gradient="false"
+        height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initStockPriceChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeStockPriceChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearStockPriceChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+  const el = document.getElementById('stock-price-chart-runtime');
+  el.clear();
+  el.addCategories(['9:00','10:00','11:00','12:00','13:00','14:00','15:00']);
+  el.addSeries('Stock Price', '#FF4560', [100,105,98,112,108,115,120]);
+  el.refresh();
+  </code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
       <h2 id="example-6">📈 6. Step Line Chart</h2>
-      <sithaso-apex id="temperature-chart" type="line" title="Temperature Changes" x-axis-title="Time" y-axis-title="Temperature (°C)"
-        curve="stepline" categories='["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"]'
+      <sithaso-apex id="temperature-chart" type="line" title="Temperature Changes" x-axis-title="Time"
+        y-axis-title="Temperature (°C)" curve="stepline"
+        categories='["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"]'
         data='[{"name": "Temperature", "data": [15, 15, 22, 22, 28, 28, 18], "color": "#00E396"}]' height="350px">
       </sithaso-apex>
+    </div>
+    <div class="chart-container">
+      <h2 id="example-6-1">📈 6.1 Runtime Step Line Chart</h2>
+      <sithaso-apex id="temperature-chart-runtime" type="line" title="Temperature Changes (Runtime)" x-axis-title="Time"
+        y-axis-title="Temperature (°C)" curve="stepline" height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initTempChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeTempChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearTempChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+  const el = document.getElementById('temperature-chart-runtime');
+  el.clear();
+  el.addCategories(['00:00','04:00','08:00','12:00','16:00','20:00','24:00']);
+  el.addSeries('Temperature', '#00E396', [15,15,22,22,28,28,18]);
+  el.refresh();
+  </code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
       <h2 id="example-7">📈 7. Dashed Line Chart</h2>
-      <sithaso-apex id="project-progress-chart" type="line" title="Project Progress" x-axis-title="Weeks" y-axis-title="Completion (%)"
+      <sithaso-apex id="project-progress-chart" type="line" title="Project Progress" x-axis-title="Weeks"
+        y-axis-title="Completion (%)"
         categories='["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6", "Week 7"]'
         data='[{"name": "Planned", "data": [10, 25, 40, 60, 75, 90, 100], "color": "#FEB019", "dashed": true}, {"name": "Actual", "data": [30, 67, 70, 90, 100, 100, 100], "color": "#FF4560", "dashed": true}]'
         height="350px">
       </sithaso-apex>
+    </div>
+    <div class="chart-container">
+      <h2 id="example-7-1">📈 7.1 Runtime Dashed Line Chart</h2>
+      <sithaso-apex id="project-progress-chart-runtime" type="line" title="Project Progress (Runtime)"
+        x-axis-title="Weeks" y-axis-title="Completion (%)" height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initDashedLineChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeDashedLineChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearDashedLineChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+  const el = document.getElementById('project-progress-chart-runtime');
+  el.clear();
+  el.addCategories(['Week 1','Week 2','Week 3','Week 4','Week 5','Week 6','Week 7']);
+  el.addSeries('Planned', '#FEB019', [10,25,40,60,75,90,100]);
+  el.SetSeriesDashed('Planned', true);
+  el.addSeries('Actual', '#FF4560', [30,67,70,90,100,100,100]);
+  el.SetSeriesDashed('Actual', true);
+  el.refresh();
+  </code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
@@ -329,9 +618,33 @@
     </div>
 
     <div class="chart-container">
+      <h2 id="example-8-1">📈 8.1 Runtime Realtime Line Chart</h2>
+      <sithaso-apex id="realtime-chart-runtime" type="line" title="Realtime Chart (Runtime)" x-axis-title="Time"
+        y-axis-title="Value" realtime="true" options='{"xaxis": { "type": "datetime", "range": 777600000}}'
+        x-axis-output-format="time" height="350px">
+      </sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initRealtimeChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeRealtimeChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearRealtimeChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('realtime-chart-runtime');
+el.clear();
+el.addCategories(['12:00','12:01','12:02','12:03','12:04','12:05','12:06','12:07','12:08','12:09']);
+el.addSeries('CPU Usage', '#008FFB', [45,50,47,52,48,55,53,50,47,46]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-9">📈 9. Line Chart with Annotations</h2>
-      <sithaso-apex id="sales-annotations-chart" type="line" title="Sales Performance with Key Events" x-axis-title="Months" y-axis-title="Sales ($)"
-        y-axis-output-format="money" categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]'
+      <sithaso-apex id="sales-annotations-chart" type="line" title="Sales Performance with Key Events"
+        x-axis-title="Months" y-axis-title="Sales ($)" y-axis-output-format="money"
+        categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]'
         data='[{"name": "Sales", "data": [12000, 15000, 18000, 22000, 19000, 25000, 28000], "color": "#00E396"}]'
         options='{"annotations": {"points": [{"x": "Apr", "y": 22000, "marker": {"size": 8, "fillColor": "#fff", "strokeColor": "#FF4560", "radius": 2}, "label": {"text": "Q1 Target Met", "offsetY": -10}}], "xaxis": [{"x": "Mar", "borderColor": "#FEB019", "label": {"text": "Product Launch", "style": {"color": "#FEB019", "background": "#FEB01920"}}}]}}'
         height="350px">
@@ -339,30 +652,130 @@
     </div>
 
     <div class="chart-container">
+      <h2 id="example-9-1">📈 9.1 Runtime Sales Annotations</h2>
+      <sithaso-apex id="sales-annotations-chart-runtime" type="line" title="Sales Performance (Runtime)"
+        x-axis-title="Months" y-axis-title="Sales ($)" y-axis-output-format="money"
+        options='{"annotations": {"points": [{"x": "Apr", "y": 22000, "marker": {"size": 8, "fillColor": "#fff", "strokeColor": "#FF4560", "radius": 2}, "label": {"text": "Q1 Target Met", "offsetY": -10}}], "xaxis": [{"x": "Mar", "borderColor": "#FEB019", "label": {"text": "Product Launch", "style": {"color": "#FEB019", "background": "#FEB01920"}}}]}}'
+        x-axis-label-rotate="45" height="350px">
+      </sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initSalesAnnotationsChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeSalesAnnotationsChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearSalesAnnotationsChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('sales-annotations-chart-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May','Jun','Jul']);
+el.addSeries('Sales', '#00E396', [12000,15000,18000,22000,19000,25000,28000]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-10">📊 10. Column Chart</h2>
-      <sithaso-apex id="monthly-revenue-column" type="column" title="Monthly Revenue" x-axis-title="Months" y-axis-title="Revenue ($)"
-        y-axis-output-format="money" x-axis-label-rotate="45" column-width="40%" data-label-orientation="vertical" data-label-position="center"
+      <sithaso-apex id="monthly-revenue-column" type="column" title="Monthly Revenue" x-axis-title="Months"
+        y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45" column-width="40%"
+        data-label-orientation="vertical" data-label-position="center"
         categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun"]' show-data-labels="false"
         data='[{"name": "Revenue", "data": [1200, 1500, 1800, 2200, 1900, 2500], "color": "#FF4560"}]' height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
+      <h2 id="example-10-1">📊 10.1 Runtime Column Chart</h2>
+      <sithaso-apex id="monthly-revenue-column-runtime" type="column" title="Monthly Revenue (Runtime)"
+        x-axis-title="Months" y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45"
+        column-width="40%" data-label-position="center" show-data-labels="false" data-label-orientation="vertical"
+        height="300px">
+      </sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initMonthlyRevenueColumnRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeMonthlyRevenueColumnRuntime()">🎲 Randomize</button>
+        <button onclick="clearMonthlyRevenueColumnRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('monthly-revenue-column-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May','Jun']);
+el.addSeries('Revenue', '#FF4560', [1200,1500,1800,2200,1900,2500]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-11">📈 11. Column Chart Grouped</h2>
-      <sithaso-apex id="revenue-growth-grouped" type="column" title="Monthly Revenue Growth" x-axis-title="Months" y-axis-title="Revenue ($)"
-        y-axis-output-format="money" x-axis-label-rotate="45" categories='["Jan", "Feb", "Mar", "Apr", "May"]'
-        column-width="40%" data-label-position="center" data-label-orientation="vertical"
+      <sithaso-apex id="revenue-growth-grouped" type="column" title="Monthly Revenue Growth" x-axis-title="Months"
+        y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45"
+        categories='["Jan", "Feb", "Mar", "Apr", "May"]' column-width="40%" data-label-position="center"
+        data-label-orientation="vertical"
         data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}, {"name": "Target", "data": [110, 130, 135, 155, 175], "color": "#00E396"}]'
         height="400px" show-data-labels="false">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
+      <h2 id="example-11-1">📈 11.1 Runtime Column Grouped</h2>
+      <sithaso-apex id="revenue-growth-grouped-runtime" type="column" title="Monthly Revenue Growth (Runtime)"
+        x-axis-title="Months" y-axis-title="Revenue ($)" y-axis-output-format="money"
+        categories='["Jan","Feb","Mar","Apr","May"]' column-width="40%" show-data-labels="false"
+        data-label-position="center" data-label-orientation="vertical" height="400px">
+      </sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initRevenueGrowthGroupedRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeRevenueGrowthGroupedRuntime()">🎲 Randomize</button>
+        <button onclick="clearRevenueGrowthGroupedRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('revenue-growth-grouped-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May']);
+el.addSeries('Revenue', '#008FFB', [100,120,140,160,180]);
+el.addSeries('Target', '#00E396', [110,130,135,155,175]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-12">🥧 12. Pie Chart</h2>
       <sithaso-apex id="browser-usage-pie" type="pie" title="Browser Usage Statistics" show-data-labels="false"
         data='[{"name": "Desktop", "data": 44, "color": "#008FFB"}, {"name": "Mobile", "data": 23, "color": "#00E396"}, {"name": "Tablet", "data": 33, "color": "#FEB019"}]'
-        options='{"stroke":{"width":6,"colors":["#fff"],"lineCap":"round"}, "plotOptions": {"pie": {"dataLabels": {"offset": 0, "style": {"colors": ["#fff"]}}}}}' height="300px">
+        options='{"stroke":{"width":6,"colors":["#fff"],"lineCap":"round"}, "plotOptions": {"pie": {"dataLabels": {"offset": 0, "style": {"colors": ["#fff"]}}}}}'
+        height="300px">
       </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-12-1">🥧 12.1 Runtime Pie Chart</h2>
+      <sithaso-apex id="browser-usage-pie-runtime" type="pie" title="Browser Usage (Runtime)" show-data-labels="false"
+        options='{"stroke":{"width":6,"colors":["#fff"],"lineCap":"round"}, "plotOptions": {"pie": {"dataLabels": {"offset": 0, "style": {"colors": ["#fff"]}}}}}'
+        height="300px">
+      </sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initBrowserUsagePieRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeBrowserUsagePieRuntime()">🎲 Randomize</button>
+        <button onclick="clearBrowserUsagePieRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('browser-usage-pie-runtime');
+el.clear();
+el.addSeries('Desktop', '#008FFB', 44);
+el.addSeries('Mobile', '#00E396', 23);
+el.addSeries('Tablet', '#FEB019', 33);
+el.refresh();
+</code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
@@ -374,51 +787,200 @@
     </div>
 
     <div class="chart-container">
+      <h2 id="example-13-1">🍩 13.1 Runtime Donut Chart</h2>
+      <sithaso-apex id="browser-market-donut-runtime" type="donut" title="Browser Market Share (Runtime)"
+        show-data-labels="false" options='{"stroke":{"width":6,"colors":["#fff"],"lineCap":"round"}}'
+        height="300px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initBrowserMarketDonutRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeBrowserMarketDonutRuntime()">🎲 Randomize</button>
+        <button onclick="clearBrowserMarketDonutRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('browser-market-donut-runtime');
+el.clear();
+el.addSeries('Chrome','#008FFB',65);
+el.addSeries('Firefox','#00E396',20);
+el.addSeries('Safari','#FEB019',10);
+el.addSeries('Other','#FF4560',5);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-14">📊 14. Basic Area Chart</h2>
-      <sithaso-apex id="monthly-revenue-area" type="area" title="Monthly Revenue Growth" x-axis-title="Months" y-axis-title="Revenue ($)"
-        y-axis-output-format="money" x-axis-label-rotate="45" curve="straight"
+      <sithaso-apex id="monthly-revenue-area" type="area" title="Monthly Revenue Growth" x-axis-title="Months"
+        y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45" curve="straight"
         categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
         data='[{"name": "Revenue", "data": [30, 40, 35, 50, 49, 60, 70, 91, 125], "color": "#008FFB"}]' height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
+      <h2 id="example-14-1">📊 14.1 Runtime Basic Area Chart</h2>
+      <sithaso-apex id="monthly-revenue-area-runtime" type="area" title="Monthly Revenue Growth (Runtime)"
+        x-axis-title="Months" y-axis-title="Revenue ($)" y-axis-output-format="money" x-axis-label-rotate="45"
+        curve="straight" height="300px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initMonthlyRevenueAreaRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeMonthlyRevenueAreaRuntime()">🎲 Randomize</button>
+        <button onclick="clearMonthlyRevenueAreaRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('monthly-revenue-area-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep']);
+el.addSeries('Revenue', '#008FFB', [30,40,35,50,49,60,70,91,125]);
+el.refresh();</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-15">🌊 15. Spline Area Chart</h2>
-      <sithaso-apex id="smooth-data-area" type="area" title="Smooth Data Trends" x-axis-title="Months" y-axis-title="Values"
-        x-axis-label-rotate="45" categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]'
+      <sithaso-apex id="smooth-data-area" type="area" title="Smooth Data Trends" x-axis-title="Months"
+        y-axis-title="Values" x-axis-label-rotate="45" categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]'
         data='[{"name": "Series 1", "data": [31, 40, 28, 51, 42, 109, 100], "color": "#008FFB"}, {"name": "Series 2", "data": [11, 32, 45, 32, 34, 52, 41], "color": "#00E396"}]'
         height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
+      <h2 id="example-15-1">🌊 15.1 Runtime Spline Area Chart</h2>
+      <sithaso-apex id="smooth-data-area-runtime" type="area" title="Smooth Data Trends (Runtime)" x-axis-title="Months"
+        y-axis-title="Values" x-axis-label-rotate="45" height="300px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initSmoothDataAreaRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeSmoothDataAreaRuntime()">🎲 Randomize</button>
+        <button onclick="clearSmoothDataAreaRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('smooth-data-area-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May','Jun','Jul']);
+el.addSeries('Series 1', '#008FFB', [31,40,28,51,42,109,100]);
+el.addSeries('Series 2', '#00E396', [11,32,45,32,34,52,41]);
+el.refresh();</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-16">📉 16. Area Chart with Negative Values</h2>
-      <sithaso-apex id="profit-loss-area" type="area" title="Profit/Loss Analysis" x-axis-title="Months" y-axis-title="Amount ($)"
-        y-axis-output-format="money" categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
+      <sithaso-apex id="profit-loss-area" type="area" title="Profit/Loss Analysis" x-axis-title="Months"
+        y-axis-title="Amount ($)" y-axis-output-format="money"
+        categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
         data='[{"name": "Profit", "data": [10, 41, 35, 51, 49, 62, 69, 91, 148], "color": "#00E396"}, {"name": "Loss", "data": [-10, -20, -15, -25, -30, -35, -40, -45, -50], "color": "#FF4560"}]'
         height="300px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
+      <h2 id="example-16-1">📉 16.1 Runtime Area Chart with Negative Values</h2>
+      <sithaso-apex id="profit-loss-area-runtime" type="area" title="Profit/Loss Analysis (Runtime)"
+        x-axis-title="Months" y-axis-title="Amount ($)" y-axis-output-format="money" height="300px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initProfitLossAreaRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeProfitLossAreaRuntime()">🎲 Randomize</button>
+        <button onclick="clearProfitLossAreaRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('profit-loss-area-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep']);
+el.addSeries('Profit', '#00E396', [10,41,35,51,49,62,69,91,148]);
+el.addSeries('Loss', '#FF4560', [-10,-20,-15,-25,-30,-35,-40,-45,-50]);
+el.refresh();</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-17">📚 17. Stacked Area Chart</h2>
-      <sithaso-apex id="traffic-sources-stacked" type="area" title="Website Traffic Sources" x-axis-title="Months" y-axis-title="Traffic Volume"
-        categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
+      <sithaso-apex id="traffic-sources-stacked" type="area" title="Website Traffic Sources" x-axis-title="Months"
+        y-axis-title="Traffic Volume" categories='["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]'
         data='[{"name": "Organic Search", "data": [44, 55, 57, 56, 61, 58, 63, 60, 66], "color": "#008FFB"}, {"name": "Direct", "data": [76, 85, 101, 98, 87, 105, 91, 114, 94], "color": "#00E396"}, {"name": "Social Media", "data": [35, 41, 36, 26, 45, 48, 52, 53, 41], "color": "#FEB019"}]'
         height="300px">
       </sithaso-apex>
     </div>
 
-    <!-- Placeholder anchor for Example 18 so nav link works -->
-    <div id="example-18" aria-hidden="true"></div>
+    <div class="chart-container">
+      <h2 id="example-17-1">📚 17.1 Runtime Stacked Area Chart</h2>
+      <sithaso-apex id="traffic-sources-stacked-runtime" type="area" title="Website Traffic Sources (Runtime)"
+        x-axis-title="Months" y-axis-title="Traffic Volume" height="300px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initTrafficSourcesStackedRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeTrafficSourcesStackedRuntime()">🎲 Randomize</button>
+        <button onclick="clearTrafficSourcesStackedRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('traffic-sources-stacked-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep']);
+el.addSeries('Organic Search', '#008FFB', [44,55,57,56,61,58,63,60,66]);
+el.addSeries('Direct', '#00E396', [76,85,101,98,87,105,91,114,94]);
+el.addSeries('Social Media', '#FEB019', [35,41,36,26,45,48,52,53,41]);
+el.refresh();</code></pre>
+      </div>
+    </div>
+
+    <!-- 18. Range Area Chart -->
+    <div class="chart-container">
+      <h2 id="example-18">📈 18. Range Area Chart</h2>
+      <sithaso-apex id="range-area-chart" type="rangeArea" title="New York Temperature (Range)" x-axis-title="Months"
+        y-axis-title="Temperature" height="300px"
+        data='[{"name":"New York Temperature","data":[{"x":"Jan","y":[-2,4]},{"x":"Feb","y":[-1,6]},{"x":"Mar","y":[3,10]},{"x":"Apr","y":[8,16]},{"x":"May","y":[13,22]},{"x":"Jun","y":[18,26]},{"x":"Jul","y":[21,29]},{"x":"Aug","y":[21,28]},{"x":"Sep","y":[17,24]},{"x":"Oct","y":[11,18]},{"x":"Nov","y":[6,12]},{"x":"Dec","y":[1,7]}]}]'>
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-18-1">📈 18.1 Runtime Range Area Chart</h2>
+      <sithaso-apex id="range-area-chart-runtime" type="rangeArea" title="Range Area (Runtime)" x-axis-title="Months"
+        y-axis-title="Temperature" height="300px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initRangeAreaRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeRangeAreaRuntime()">🎲 Randomize</button>
+        <button onclick="clearRangeAreaRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('range-area-chart-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
+el.addSeries('New York Temperature', '#008FFB', [{x:'Jan',y:[-2,4]},{x:'Feb',y:[-1,6]},{x:'Mar',y:[3,10]},{x:'Apr',y:[8,16]},{x:'May',y:[13,22]},{x:'Jun',y:[18,26]},{x:'Jul',y:[21,29]},{x:'Aug',y:[21,28]},{x:'Sep',y:[17,24]},{x:'Oct',y:[11,18]},{x:'Nov',y:[6,12]},{x:'Dec',y:[1,7]}]);
+el.refresh();</code></pre>
+      </div>
+    </div>
 
     <div class="chart-container">
       <h2 id="example-19">📍 19. Scatter Plot with Axis Titles</h2>
-      <sithaso-apex id="data-correlation-scatter" type="scatter" title="Data Correlation Analysis" x-axis-title="X Coordinate"
-        y-axis-title="Y Coordinate"
+      <sithaso-apex id="data-correlation-scatter" type="scatter" title="Data Correlation Analysis"
+        x-axis-title="X Coordinate" y-axis-title="Y Coordinate"
         data='[{"name": "Data Points", "data": [[10, 20], [15, 25], [20, 30], [25, 35], [30, 40]], "color": "#008FFB"}]'
         height="300px">
       </sithaso-apex>
+    </div>
+    <div class="chart-container">
+      <h2 id="example-19-1">📍 19.1 Runtime Scatter Plot with Axis Titles</h2>
+      <sithaso-apex id="data-correlation-scatter-runtime" type="scatter" title="Data Correlation Analysis (Runtime)"
+        x-axis-title="X Coordinate" y-axis-title="Y Coordinate" height="300px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initDataCorrelationScatterRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeDataCorrelationScatterRuntime()">🎲 Randomize</button>
+        <button onclick="clearDataCorrelationScatterRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('data-correlation-scatter-runtime');
+el.clear();
+el.addSeries('Data Points', '#008FFB', [[10,20],[15,25],[20,30],[25,35],[30,40]]);
+el.refresh();
+</code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
@@ -429,46 +991,177 @@
       </sithaso-apex>
     </div>
 
+    <div class="chart-container">
+      <h2 id="example-20-1">🎯 20.1 Runtime Radial Bar</h2>
+      <sithaso-apex id="progress-radial-bar-runtime" type="radialBar" title="Progress (Runtime)" end-angle="270"
+        bar-labels="true" height="450px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initProgressRadialBarRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeProgressRadialBarRuntime()">🎲 Randomize</button>
+        <button onclick="clearProgressRadialBarRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('progress-radial-bar-runtime');
+el.clear();
+el.addSeries('Progress', '#008FFB', 70);
+el.addSeries('Score', '#00E396', 80);
+el.addSeries('Rating', '#FEB019', 90);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
 
 
     <div class="chart-container">
       <h2 id="example-21">🏏 21. Radial Bar</h2>
-      <sithaso-apex id="cricket-score-radial" type="radialBar" data='[{"name": "Cricket", "data": 70, "color": "#008FFB"}]' hollow-size="70%"
+      <sithaso-apex id="cricket-score-radial" type="radialBar"
+        data='[{"name": "Cricket", "data": 70, "color": "#008FFB"}]' hollow-size="70%" height="350px">
+      </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-21-1">🏏 21.1 Runtime Radial Chart</h2>
+      <sithaso-apex id="cricket-score-radial-runtime" type="radialBar" title="Cricket Score (Runtime)" hollow-size="70%"
+        height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initCricketScoreRadialRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeCricketScoreRadialRuntime()">🎲 Randomize</button>
+        <button onclick="clearCricketScoreRadialRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('cricket-score-radial-runtime');
+el.clear();
+el.addSeries('Cricket', '#008FFB', 70);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-22">🏏 22. Radial Bar</h2>
+      <sithaso-apex id="cricket-dashed-radial" type="radialBar"
+        data='[{"name": "Cricket", "data": 70, "color": "#008FFB"}]' hollow-size="70%" dashed-radial="true"
         height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
-      <h2 id="example-22">🏏 22. Radial Bar</h2>
-      <sithaso-apex id="cricket-dashed-radial" type="radialBar" data='[{"name": "Cricket", "data": 70, "color": "#008FFB"}]' hollow-size="70%"
-        dashed-radial="true" height="350px">
-      </sithaso-apex>
+      <h2 id="example-22-1">🏏 22.1 Runtime Dashed Radial Chart</h2>
+      <sithaso-apex id="cricket-dashed-radial-runtime" type="radialBar" title="Cricket Dashed (Runtime)"
+        hollow-size="70%" dashed-radial="true" height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initCricketDashedRadialRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeCricketDashedRadialRuntime()">🎲 Randomize</button>
+        <button onclick="clearCricketDashedRadialRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('cricket-dashed-radial-runtime');
+el.clear();
+el.addSeries('Cricket', '#008FFB', 70);
+el.refresh();
+</code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
       <h2 id="example-23">📊 23. Horizontal Bar Chart</h2>
-      <sithaso-apex id="horizontal-bar-chart" title="Revenue Per Month" type="bar" categories='["Jan", "Feb", "Mar", "Apr", "May"]' show-data-labels="false"
-        column-width="40%" data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}]' data-label-position="center"
+      <sithaso-apex id="horizontal-bar-chart" title="Revenue Per Month" type="bar"
+        categories='["Jan", "Feb", "Mar", "Apr", "May"]' show-data-labels="false" column-width="40%"
+        data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}]' data-label-position="center"
         x-axis-title="Revenue ($)" x-axis-output-format="money" x-axis-offsety="20" y-axis-title="Months"
         height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
+      <h2 id="example-23-1">📊 23.1 Runtime Horizontal Bar Chart</h2>
+      <sithaso-apex id="horizontal-bar-chart-runtime" title="Revenue Per Month (Runtime)" type="bar"
+        categories='["Jan","Feb","Mar","Apr","May"]' show-data-labels="false" column-width="40%"
+        data-label-position="center" x-axis-title="Revenue ($)" x-axis-output-format="money" x-axis-offsety="20"
+        y-axis-title="Months" height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initHorizontalBarChartRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeHorizontalBarChartRuntime()">🎲 Randomize</button>
+        <button onclick="clearHorizontalBarChartRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('horizontal-bar-chart-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May']);
+el.addSeries('Revenue', '#008FFB', [100,120,140,160,180]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-24">📈 24. Horizontal Bar Grouped</h2>
-      <sithaso-apex id="horizontal-bar-grouped" type="bar" title="Monthly Revenue Growth" x-axis-title="Revenue vs Target" show-data-labels="false"
-        x-axis-output-format="money" y-axis-title="Month" categories='["Jan", "Feb", "Mar", "Apr", "May"]' data-label-position="center"
+      <sithaso-apex id="horizontal-bar-grouped" type="bar" title="Monthly Revenue Growth"
+        x-axis-title="Revenue vs Target" show-data-labels="false" x-axis-output-format="money" y-axis-title="Month"
+        categories='["Jan", "Feb", "Mar", "Apr", "May"]' data-label-position="center"
         data='[{"name": "Revenue", "data": [100, 120, 140, 160, 180], "color": "#008FFB"}, {"name": "Target", "data": [110, 130, 135, 155, 175], "color": "#00E396"}]'
         column-width="40%" height="400px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
+      <h2 id="example-24-1">📈 24.1 Runtime Horizontal Bar Grouped</h2>
+      <sithaso-apex id="horizontal-bar-grouped-runtime" type="bar" title="Monthly Revenue Growth (Runtime)"
+        x-axis-title="Revenue vs Target" y-axis-title="Month" categories='["Jan","Feb","Mar","Apr","May"]'
+        column-width="40%" show-data-labels="false" x-axis-output-format="money" data-label-position="center"
+        height="400px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initHorizontalBarGroupedRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeHorizontalBarGroupedRuntime()">🎲 Randomize</button>
+        <button onclick="clearHorizontalBarGroupedRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('horizontal-bar-grouped-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May']);
+el.addSeries('Revenue', '#008FFB', [100,120,140,160,180]);
+el.addSeries('Target', '#00E396', [110,130,135,155,175]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-25">📡 25. Radar Chart</h2>
-      <sithaso-apex id="radar-comparison" type="radar" title="Radar Comparison" x-axis-title="Metrics" y-axis-title="Score" marker-size="0"
+      <sithaso-apex id="radar-comparison" type="radar" title="Radar Comparison" x-axis-title="Metrics"
+        y-axis-title="Score" marker-size="0"
         categories='["Strength", "Speed", "Endurance", "Agility", "Technique", "Luck"]'
         data='[{"name": "Car 1", "data": [80, 50, 30, 40, 100, 20], "color": "#AA00FF"}]' height="350px">
       </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-25-1">📡 25.1 Runtime Radar Chart</h2>
+      <sithaso-apex id="radar-comparison-runtime" type="radar" title="Radar Comparison (Runtime)" x-axis-title="Metrics"
+        y-axis-title="Score" marker-size="0" height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initRadarComparisonRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeRadarComparisonRuntime()">🎲 Randomize</button>
+        <button onclick="clearRadarComparisonRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('radar-comparison-runtime');
+el.clear();
+el.addCategories(['Strength','Speed','Endurance','Agility','Technique','Luck']);
+el.addSeries('Car 1', '#AA00FF', [80,50,30,40,100,20]);
+el.refresh();
+</code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
@@ -481,22 +1174,94 @@
       </sithaso-apex>
     </div>
 
-    <!-- Dynamic Options Demo -->
+    <div class="chart-container">
+      <h2 id="example-25a1">📡 25a.1 Radar Chart - Multi Series</h2>
+      <sithaso-apex id="radar-multi-series-runtime" type="radar" title="Radar Chart - Multi Series (Runtime)"
+        marker-size="0" categories='["2011", "2012", "2013", "2014", "2015", "2016"]'
+        data='[{"name":"Series 1","data":[80,50,30,40,100,20],"color":"#AA00FF"},{"name":"Series 2","data":[20,30,40,80,20,80],"color":"#FF0066"},{"name":"Series 3","data":[44,76,78,13,43,10],"color":"#00AAFF"}]'
+        options='{"stroke":{"width":2},"fill":{"opacity":0.1},"chart":{"dropShadow":{"enabled":true,"blur":1,"left":1,"top":1}}}'
+        height="350px">
+      </sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initRadarMultiSeriesRuntime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeRadarMultiSeriesRuntime()">🎲 Randomize</button>
+        <button onclick="clearRadarMultiSeriesRuntime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('radar-multi-series-runtime');
+el.clear();
+el.addCategories(['2011','2012','2013','2014','2015','2016']);
+el.addSeries('Series 1', '#AA00FF', [80,50,30,40,100,20]);
+el.addSeries('Series 2', '#FF0066', [20,30,40,80,20,80]);
+el.addSeries('Series 3', '#00AAFF', [44,76,78,13,43,10]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
+
     <div class="chart-container">
       <h2 id="example-26">🌐 26. Polar Area Chart</h2>
       <sithaso-apex id="polar-area-chart" type="polarArea" title="Polar Area Distribution"
         categories='["House A", "House B", "House C", "House D", "House E"]'
-        colors='["#FF7A59", "#FFD166", "#06D6A0", "#4CC9F0", "#7209B7"]' data='[44, 20, 13, 43]' height="350px">
+        colors='["#FF7A59", "#FFD166", "#06D6A0", "#4CC9F0", "#7209B7"]' data='[44, 20, 13, 43, 27]' height="350px">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
+      <h2 id="example-26-1">26.1 Runtime Polar Area Chart</h2>
+      <sithaso-apex id="example-26-chart-runtime" type="polarArea" title="Polar Area Distribution (Runtime)"
+        height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initExample26Runtime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeExample26Runtime()">🎲 Randomize</button>
+        <button onclick="clearExample26Runtime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('example-26-chart-runtime');
+    el.clear();
+    el.addSeries('House A', '#FF7A59', 44);
+    el.addSeries('House B', '#FFD166', 20);
+    el.addSeries('House C', '#06D6A0', 13);
+    el.addSeries('House D', '#4CC9F0', 43);
+    el.addSeries('House E', '#7209B7', 27);
+    el.refresh();
+    </code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
       <h2 id="example-27">📊 27. Stacked Column Chart</h2>
-      <sithaso-apex id="stacked-column-chart" type="column" title="Stacked Sales by Product" categories='["Q1","Q2","Q3","Q4"]' border-radius="4" show-data-labels="false"
-        y-axis-output-format="money" column-width="40%" stacked="true" data-label-position="center"
+      <sithaso-apex id="stacked-column-chart" type="column" title="Stacked Sales by Product"
+        categories='["Q1","Q2","Q3","Q4"]' border-radius="4" show-data-labels="false" y-axis-output-format="money"
+        column-width="40%" stacked="true" data-label-position="center"
         data='[{"name":"Product A","data":[44,55,41,67],"color":"#008FFB"},{"name":"Product B","data":[13,23,20,8],"color":"#00E396"},{"name":"Product C","data":[11,17,15,15],"color":"#FEB019"}]'
         height="350px">
       </sithaso-apex>
+    </div>
+    <div class="chart-container">
+      <h2 id="example-27-1">27.1 Runtime Stacked Column Chart</h2>
+      <sithaso-apex id="example-27-chart-runtime" type="column" title="Stacked Sales by Product (Runtime)"
+        border-radius="4" show-data-labels="false" y-axis-output-format="money" column-width="40%" stacked="true"
+        data-label-position="center" height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initExample27Runtime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeExample27Runtime()">🎲 Randomize</button>
+        <button onclick="clearExample27Runtime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">// Example runtime initialization
+const el = document.getElementById('example-27-chart-runtime');
+el.clear();
+el.addCategories(['Q1','Q2','Q3','Q4']);
+el.addSeries('Product A', '#008FFB', [44,55,41,67]);
+el.addSeries('Product B', '#00E396', [13,23,20,8]);
+el.addSeries('Product C', '#FEB019', [11,17,15,15]);
+el.refresh();
+</code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
@@ -507,15 +1272,60 @@
         height="350px">
       </sithaso-apex>
     </div>
+    <div class="chart-container">
+      <h2 id="example-28-1">28.1 Runtime Stacked Area Chart</h2>
+      <sithaso-apex id="example-28-chart-runtime" type="area" title="Stacked Area - Traffic Sources (Runtime)"
+        stacked="true" height="350px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initExample28Runtime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeExample28Runtime()">🎲 Randomize</button>
+        <button onclick="clearExample28Runtime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('example-28-chart-runtime');
+el.clear();
+el.addCategories(['Jan','Feb','Mar','Apr','May','Jun','Jul']);
+el.addSeries('Organic', '#008FFB', [44,55,41,67,22,43,21]);
+el.addSeries('Direct', '#00E396', [13,23,20,8,13,27,33]);
+el.addSeries('Referral', '#FEB019', [11,17,15,15,21,14,22]);
+el.refresh();
+</code></pre>
+      </div>
+    </div>
 
     <div class="chart-container">
       <h2 id="example-29">📊 29. Stacked Bar Chart</h2>
-      <sithaso-apex id="stacked-bar-chart" type="bar" title="Stacked Revenue by Region" categories='["2016","2017","2018","2019","2020"]' show-data-labels="false"
-        border-radius="4" column-width="40%" x-axis-title="Revenue" x-axis-output-format="money" y-axis-title="Year" data-label-position="center"
+      <sithaso-apex id="stacked-bar-chart" type="bar" title="Stacked Revenue by Region"
+        categories='["2016","2017","2018","2019","2020"]' show-data-labels="false" border-radius="4" column-width="40%"
+        x-axis-title="Revenue" x-axis-output-format="money" y-axis-title="Year" data-label-position="center"
         stacked="true"
         data='[{"name":"North","data":[44,55,41,37,22],"color":"#008FFB"},{"name":"South","data":[13,23,20,8,13],"color":"#00E396"},{"name":"East","data":[11,17,15,15,21],"color":"#FEB019"}]'
         height="450px">
       </sithaso-apex>
+    </div>
+    <div class="chart-container">
+      <h2 id="example-29-1">29.1 Runtime Stacked Bar Chart</h2>
+      <sithaso-apex id="example-29-chart-runtime" type="bar" title="Stacked Revenue by Region (Runtime)"
+        show-data-labels="false" border-radius="4" column-width="40%" x-axis-title="Revenue"
+        x-axis-output-format="money" y-axis-title="Year" data-label-position="center" stacked="true"
+        height="450px"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initExample29Runtime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeExample29Runtime()">🎲 Randomize</button>
+        <button onclick="clearExample29Runtime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('example-29-chart-runtime');
+        el.clear();
+        el.addCategories(['2016','2017','2018','2019','2020']);
+        el.addSeries('North', '#008FFB', [44,55,41,37,22]);
+        el.addSeries('South', '#00E396', [13,23,20,8,13]);
+        el.addSeries('East', '#FEB019', [11,17,15,15,21]);
+        el.refresh();
+        </code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
@@ -527,21 +1337,178 @@
         <button onclick="clearUIFChart()">🗑️ Clear Chart</button>
       </div>
 
-      <sithaso-apex id="uif-contribution-chart" type="pie" title="UIF Contribution" height="350" show-data-labels="false" show-legend="true" legend-position="top" gradient="false">
+      <sithaso-apex id="uif-contribution-chart" type="pie" title="UIF Contribution" height="350" show-data-labels="true"
+        show-legend="true" legend-position="top" gradient="false">
       </sithaso-apex>
     </div>
 
     <div class="chart-container">
       <h2 id="example-31">📊 31. Beneficiary Status Column Chart (Runtime Update)</h2>
-      <p class="controls-desc">This example demonstrates runtime chart updates for column charts using B4X-style methods:</p>
+      <p class="controls-desc">This example demonstrates runtime chart updates for column charts using B4X-style
+        methods:</p>
 
       <div class="controls">
         <button onclick="updateBeneficiaryChart()">🔄 Update Chart Runtime</button>
         <button onclick="clearBeneficiaryChart()">🗑️ Clear Chart</button>
       </div>
 
-      <sithaso-apex id="beneficiary-status-chart" type="column" title="Beneficiary Status" height="350" show-data-labels="false" show-legend="true" legend-position="top" force-rounded-stacks="false" data-label-position="center">
+      <sithaso-apex id="beneficiary-status-chart" type="column" title="Beneficiary Status" height="350"
+        show-data-labels="true" show-legend="true" legend-position="top" force-rounded-stacks="false"
+        data-label-position="center">
       </sithaso-apex>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-32">✨ 32. Sparkline Area Chart</h2>
+      <sithaso-apex id="example-32-sparkline" type="area" curve="straight" grid-show="false" tooltip-enabled="false"
+        title="$424,652" subtitle="Sales" title-font-size="24px" subtitle-font-size="14px"
+        data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]' sparkline="true" height="160"
+        marker-size="0" show-legend="false" show-data-labels="false" show-toolbar="false">
+      </sithaso-apex>
+      <div class="code-section">
+        <strong>Code</strong>
+        <pre class="code-block"><code class="language-html">&lt;sithaso-apex
+  id="example-32-sparkline"
+  type="area"
+  curve="straight"
+  grid-show="false"
+  tooltip-enabled="false"
+  title="$424,652"
+  subtitle="Sales"
+  title-font-size="24px"
+  subtitle-font-size="14px"
+  data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]'
+  sparkline="true"
+  height="160"
+  marker-size="0"
+  show-legend="false"
+  show-data-labels="false"
+  show-toolbar="false"
+&gt;&lt;/sithaso-apex&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-32-1">32.1 Runtime Sparkline Area Chart</h2>
+      <sithaso-apex id="example-32-chart-runtime" type="area" curve="straight" grid-show="false" tooltip-enabled="false"
+        subtitle="Sales" title-font-size="24px" subtitle-font-size="14px" sparkline="true" title="$424,652"
+        data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]' height="160" marker-size="0"
+        show-legend="false" show-data-labels="false" show-toolbar="false"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initExample32Runtime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeExample32Runtime()">🎲 Randomize</button>
+        <button onclick="clearExample32Runtime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('example-32-chart-runtime');
+      el.clear();
+      el.addSeries('Sales', '#008FFB', [47,45,54,38,56,24,65,31,37,39,62,51]);
+      el.refresh();
+        </code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-33">✨ 33. Sparkline Line Chart</h2>
+      <sithaso-apex id="example-33-sparkline" type="line" curve="straight" grid-show="false" tooltip-enabled="false"
+        title="$424,652" subtitle="Sales" title-font-size="24px" subtitle-font-size="14px"
+        data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]' sparkline="true" height="160"
+        marker-size="0" show-legend="false" show-data-labels="false" show-toolbar="false">
+      </sithaso-apex>
+      <div class="code-section">
+        <strong>Code</strong>
+        <pre class="code-block"><code class="language-html">&lt;sithaso-apex
+  id="example-33-sparkline"
+  type="line"
+  curve="straight"
+  grid-show="false"
+  tooltip-enabled="false"
+  title="$424,652"
+  subtitle="Sales"
+  title-font-size="24px"
+  subtitle-font-size="14px"
+  data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]'
+  sparkline="true"
+  height="160"
+  marker-size="0"
+  show-legend="false"
+  show-data-labels="false"
+  show-toolbar="false"
+&gt;&lt;/sithaso-apex&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-33-1">33.1 Runtime Sparkline Line Chart</h2>
+      <sithaso-apex id="example-33-chart-runtime" type="line" curve="straight" grid-show="false" tooltip-enabled="false"
+        subtitle="Sales" title-font-size="24px" subtitle-font-size="14px" sparkline="true" title="$424,652"
+        data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]' height="160" marker-size="0"
+        show-legend="false" show-data-labels="false" show-toolbar="false"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initExample33Runtime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeExample33Runtime()">🎲 Randomize</button>
+        <button onclick="clearExample33Runtime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('example-33-chart-runtime');
+el.clear();
+el.addSeries('Sales', '#008FFB', [47,45,54,38,56,24,65,31,37,39,62,51]);
+el.refresh();
+        </code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-34">✨ 34. Sparkline Column Chart</h2>
+      <sithaso-apex id="example-34-sparkline" type="column" curve="straight" grid-show="false" tooltip-enabled="false"
+        title="$424,652" subtitle="Sales" title-font-size="24px" subtitle-font-size="14px"
+        data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]' sparkline="true" height="160"
+        marker-size="0" show-legend="false" show-data-labels="false" show-toolbar="false">
+      </sithaso-apex>
+      <div class="code-section">
+        <strong>Code</strong>
+        <pre class="code-block"><code class="language-html">&lt;sithaso-apex
+  id="example-34-sparkline"
+  type="column"
+  curve="straight"
+  grid-show="false"
+  tooltip-enabled="false"
+  title="$424,652"
+  subtitle="Sales"
+  title-font-size="24px"
+  subtitle-font-size="14px"
+  data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]'
+  sparkline="true"
+  height="160"
+  marker-size="0"
+  show-legend="false"
+  show-data-labels="false"
+  show-toolbar="false"
+&gt;&lt;/sithaso-apex&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h2 id="example-34-1">34.1 Runtime Sparkline Column Chart</h2>
+      <sithaso-apex id="example-34-chart-runtime" type="column" curve="straight" grid-show="false"
+        tooltip-enabled="false" subtitle="Sales" title-font-size="24px" subtitle-font-size="14px" sparkline="true"
+        title="$424,652" data='[{"name":"Sales","data":[47,45,54,38,56,24,65,31,37,39,62,51], "color":"#008FFB"}]' height="160"
+        marker-size="0" show-legend="false" show-data-labels="false" show-toolbar="false"></sithaso-apex>
+      <div class="controls example-runtime-controls">
+        <button onclick="initExample34Runtime()">🔧 Initialize Runtime</button>
+        <button onclick="randomizeExample34Runtime()">🎲 Randomize</button>
+        <button onclick="clearExample34Runtime()">🗑️ Clear Runtime</button>
+      </div>
+      <div class="code-section">
+        <strong>Runtime Code</strong>
+        <pre class="code-block"><code class="language-js">const el = document.getElementById('example-34-chart-runtime');
+el.clear();
+el.addSeries('Sales', '#008FFB', [47,45,54,38,56,24,65,31,37,39,62,51]);
+el.refresh();
+        </code></pre>
+      </div>
     </div>
 
     <div class="chart-container">
@@ -557,8 +1524,8 @@
         <button onclick="resetChartOptions()">🔄 Reset</button>
       </div>
 
-      <sithaso-apex id="dynamic-chart" type="bar" title="Dynamic Options Demo" x-axis-title="Values" show-data-labels="false"
-        y-axis-title="Categories" column-width="40%" data-label-position="center"
+      <sithaso-apex id="dynamic-chart" type="bar" title="Dynamic Options Demo" x-axis-title="Values"
+        show-data-labels="false" y-axis-title="Categories" column-width="40%" data-label-position="center"
         data='[{"name": "Series 1", "data": {"A": 10, "B": 20, "C": 30, "D": 40}, "color": "#008FFB"}]' height="350px">
       </sithaso-apex>
     </div>
@@ -757,22 +1724,22 @@
       // UIF Contribution Chart Runtime Update Functions
       function updateUIFChart() {
         const chart = document.getElementById('uif-contribution-chart');
-        
+
         try {
           // Clear existing data
-          chart.clearData();
-          
+          chart.clear();
+
           // Add series values
-          chart.AddSeriesValue('YES', 90);
-          chart.AddSeriesValue('NO', 10);
-          
+          chart.addSeriesValue('YES', 90);
+          chart.addSeriesValue('NO', 10);
+
           // Set series colors
           chart.SetSeriesColor('YES', '#008FFB'); // Blue
           chart.SetSeriesColor('NO', '#FF8C00');  // Orange
-          
+
           // Refresh to apply changes
           chart.refresh();
-          
+
           console.log('UIF chart updated successfully!');
         } catch (error) {
           console.error('Error updating UIF chart:', error);
@@ -781,9 +1748,9 @@
 
       function clearUIFChart() {
         const chart = document.getElementById('uif-contribution-chart');
-        
+
         try {
-          chart.clearData();
+          chart.clear();
           console.log('UIF chart cleared!');
         } catch (error) {
           console.error('Error clearing UIF chart:', error);
@@ -791,29 +1758,29 @@
       }
 
       function updateBeneficiaryChart() {
-        
+
         const chart = document.getElementById('beneficiary-status-chart');
-        
+
         try {
           // Clear existing data
-          chart.clearData();
-          
+          chart.clear();
+
           // Add categories
           chart.addCategories(['Active', 'InActive']);
-          
+
           // Add series category values
-          chart.AddSeriesCategoryValue('YES', 'Active', 491);
-          chart.AddSeriesCategoryValue('YES', 'InActive', 234);
-          chart.AddSeriesCategoryValue('NO', 'Active', 156);
-          chart.AddSeriesCategoryValue('NO', 'InActive', 89);
-          
+          chart.addSeriesCategoryValue('YES', 'Active', 491);
+          chart.addSeriesCategoryValue('YES', 'InActive', 234);
+          chart.addSeriesCategoryValue('NO', 'Active', 156);
+          chart.addSeriesCategoryValue('NO', 'InActive', 89);
+
           // Set series colors
           chart.SetSeriesColor('YES', '#008FFB'); // Blue
           chart.SetSeriesColor('NO', '#FF8C00');  // Orange
-          
+
           // Refresh to apply changes
           chart.refresh();
-          
+
           console.log('Beneficiary chart updated successfully!');
         } catch (error) {
           console.error('Error updating beneficiary chart:', error);
@@ -822,14 +1789,289 @@
 
       function clearBeneficiaryChart() {
         const chart = document.getElementById('beneficiary-status-chart');
-        
+
         try {
-          chart.clearData();
+          chart.clear();
           console.log('Beneficiary chart cleared!');
         } catch (error) {
           console.error('Error clearing beneficiary chart:', error);
         }
       }
+
+      // Runtime example 1 helpers (initialize/clear/randomize)
+      function initSimpleLineChartRuntime() {
+        const el = document.getElementById('simple-line-chart-runtime');
+        if (!el) return;
+        try {
+          el.clear();
+          el.addCategories(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+          el.addSeries('Daily Visitors', '#008FFB', [1200, 1350, 1180, 1420, 1680, 1890, 2100]);
+          el.refresh();
+          console.log('Runtime simple chart initialized');
+        } catch (e) { console.error('initSimpleLineChartRuntime error', e); }
+      }
+
+      function clearSimpleLineChartRuntime() {
+        const el = document.getElementById('simple-line-chart-runtime');
+        if (!el) return;
+        try { el.clear(); console.log('Runtime simple chart cleared'); } catch (e) { console.error('clearSimpleLineChartRuntime error', e); }
+      }
+
+      function randomizeSimpleLineChartRuntime() {
+        const el = document.getElementById('simple-line-chart-runtime');
+        if (!el) return;
+        try {
+          const values = [];
+          for (let i = 0; i < 7; i++) values.push(Math.floor(Math.random() * 1000) + 1000);
+          el.clear();
+          el.addCategories(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+          el.addSeries('Daily Visitors', '#008FFB', values);
+          el.refresh();
+          console.log('Runtime simple chart randomized');
+        } catch (e) { console.error('randomizeSimpleLineChartRuntime error', e); }
+      }
+
+      // Runtime example 2.1 helpers (initialize/clear/randomize)
+      function initRotatedLineChartRuntime() {
+        const el = document.getElementById('line-chart-no-rotation-runtime');
+        if (!el) return;
+        try {
+          el.clear();
+          el.addCategories(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+          el.addSeries('Daily Visitors', '#008FFB', [1200, 1350, 1180, 1420, 1680, 1890, 2100]);
+          el.refresh();
+          console.log('Runtime rotated chart initialized');
+        } catch (e) { console.error('initRotatedLineChartRuntime error', e); }
+      }
+
+      function clearRotatedLineChartRuntime() {
+        const el = document.getElementById('line-chart-no-rotation-runtime');
+        if (!el) return;
+        try { el.clear(); console.log('Runtime rotated chart cleared'); } catch (e) { console.error('clearRotatedLineChartRuntime error', e); }
+      }
+
+      function randomizeRotatedLineChartRuntime() {
+        const el = document.getElementById('line-chart-no-rotation-runtime');
+        if (!el) return;
+        try {
+          const values = [];
+          for (let i = 0; i < 7; i++) values.push(Math.floor(Math.random() * 1000) + 1000);
+          el.clear();
+          el.addCategories(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+          el.addSeries('Daily Visitors', '#008FFB', values);
+          el.refresh();
+          console.log('Runtime rotated chart randomized');
+        } catch (e) { console.error('randomizeRotatedLineChartRuntime error', e); }
+      }
+
+      // Runtime example 3.1 helpers (initialize/clear/randomize)
+      function initMultiLineChartRuntime() {
+        const el = document.getElementById('line-chart-runtime');
+        if (!el) return;
+        try {
+          el.clear();
+          el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']);
+          el.addSeries('Revenue', '#008FFB', [100, 120, 140, 160, 180]);
+          el.addSeries('Target', '#00E396', [110, 130, 135, 155, 175]);
+          el.refresh();
+          console.log('Runtime multi-line chart initialized');
+        } catch (e) { console.error('initMultiLineChartRuntime error', e); }
+      }
+
+      function clearMultiLineChartRuntime() {
+        const el = document.getElementById('line-chart-runtime');
+        if (!el) return;
+        try { el.clear(); console.log('Runtime multi-line chart cleared'); } catch (e) { console.error('clearMultiLineChartRuntime error', e); }
+      }
+
+      function randomizeMultiLineChartRuntime() {
+        const el = document.getElementById('line-chart-runtime');
+        if (!el) return;
+        try {
+          const vals1 = []; const vals2 = [];
+          for (let i = 0; i < 5; i++) { vals1.push(Math.floor(Math.random() * 200) + 50); vals2.push(Math.floor(Math.random() * 200) + 60); }
+          el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']);
+          el.addSeries('Revenue', '#008FFB', vals1);
+          el.addSeries('Target', '#00E396', vals2);
+          el.refresh();
+          console.log('Runtime multi-line chart randomized');
+        } catch (e) { console.error('randomizeMultiLineChartRuntime error', e); }
+      }
+
+      // Runtime example 4.1 helpers (initialize/clear/randomize)
+      function initStraightLineChartRuntime() {
+        const el = document.getElementById('line-chart-straight-runtime');
+        if (!el) return;
+        try {
+          el.clear();
+          el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']);
+          el.addSeries('Revenue', '#008FFB', [100, 120, 140, 160, 180]);
+          el.addSeries('Target', '#00E396', [110, 130, 135, 155, 175]);
+          el.refresh();
+          console.log('Runtime straight-line chart initialized');
+        } catch (e) { console.error('initStraightLineChartRuntime error', e); }
+      }
+
+      function clearStraightLineChartRuntime() { const el = document.getElementById('line-chart-straight-runtime'); if (!el) return; try { el.clear(); console.log('Runtime straight-line chart cleared'); } catch (e) { console.error('clearStraightLineChartRuntime error', e); } }
+
+      function randomizeStraightLineChartRuntime() { const el = document.getElementById('line-chart-straight-runtime'); if (!el) return; try { const v1 = []; const v2 = []; for (let i = 0; i < 5; i++) { v1.push(Math.floor(Math.random() * 200) + 50); v2.push(Math.floor(Math.random() * 200) + 60); } el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']); el.addSeries('Revenue', '#008FFB', v1); el.addSeries('Target', '#00E396', v2); el.refresh(); console.log('Runtime straight-line chart randomized'); } catch (e) { console.error('randomizeStraightLineChartRuntime error', e); } }
+
+      // Runtime example 5.1 helpers (initialize/clear/randomize)
+      function initStockPriceChartRuntime() {
+        const el = document.getElementById('stock-price-chart-runtime');
+        if (!el) return;
+        try { el.clear(); el.addCategories(['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00']); el.addSeries('Stock Price', '#FF4560', [100, 105, 98, 112, 108, 115, 120]); el.refresh(); console.log('Runtime stock-price chart initialized'); } catch (e) { console.error('initStockPriceChartRuntime error', e); }
+      }
+
+      function clearStockPriceChartRuntime() { const el = document.getElementById('stock-price-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime stock-price chart cleared'); } catch (e) { console.error('clearStockPriceChartRuntime error', e); } }
+
+      function randomizeStockPriceChartRuntime() { const el = document.getElementById('stock-price-chart-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 7; i++) vals.push(Math.floor(Math.random() * 40) + 80); el.clear(); el.addCategories(['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00']); el.addSeries('Stock Price', '#FF4560', vals); el.refresh(); console.log('Runtime stock-price chart randomized'); } catch (e) { console.error('randomizeStockPriceChartRuntime error', e); } }
+
+      // Runtime example 6.1 helpers (initialize/clear/randomize)
+      function initTempChartRuntime() { const el = document.getElementById('temperature-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00']); el.addSeries('Temperature', '#00E396', [15, 15, 22, 22, 28, 28, 18]); el.refresh(); console.log('Runtime temp chart initialized'); } catch (e) { console.error('initTempChartRuntime error', e); } }
+
+      function clearTempChartRuntime() { const el = document.getElementById('temperature-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime temp chart cleared'); } catch (e) { console.error('clearTempChartRuntime error', e); } }
+
+      function randomizeTempChartRuntime() { const el = document.getElementById('temperature-chart-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 7; i++) vals.push(Math.floor(Math.random() * 20) + 10); el.clear(); el.addCategories(['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00']); el.addSeries('Temperature', '#00E396', vals); el.refresh(); console.log('Runtime temp chart randomized'); } catch (e) { console.error('randomizeTempChartRuntime error', e); } }
+
+      // Runtime example 7.1 helpers (initialize/clear/randomize)
+      function initDashedLineChartRuntime() { const el = document.getElementById('project-progress-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7']); el.addSeries('Planned', '#FEB019', [10, 25, 40, 60, 75, 90, 100]); el.SetSeriesDashed('Planned', true); el.addSeries('Actual', '#FF4560', [30, 67, 70, 90, 100, 100, 100]); el.SetSeriesDashed('Actual', true); el.refresh(); console.log('Runtime dashed chart initialized'); } catch (e) { console.error('initDashedLineChartRuntime error', e); } }
+
+      function clearDashedLineChartRuntime() { const el = document.getElementById('project-progress-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime dashed chart cleared'); } catch (e) { console.error('clearDashedLineChartRuntime error', e); } }
+
+      function randomizeDashedLineChartRuntime() { const el = document.getElementById('project-progress-chart-runtime'); if (!el) return; try { const a = []; const b = []; for (let i = 0; i < 7; i++) { a.push(Math.floor(Math.random() * 100)); b.push(Math.floor(Math.random() * 100)); } el.clear(); el.addCategories(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7']); el.addSeries('Planned', '#FEB019', a); el.SetSeriesDashed('Planned', true); el.addSeries('Actual', '#FF4560', b); el.SetSeriesDashed('Actual', true); el.refresh(); console.log('Runtime dashed chart randomized'); } catch (e) { console.error('randomizeDashedLineChartRuntime error', e); } }
+
+      // Runtime example 8.1 helpers
+      function initRealtimeChartRuntime() { const el = document.getElementById('realtime-chart-runtime'); if (!el) return; try { el.clear(); const categories = ['12:00', '12:01', '12:02', '12:03', '12:04', '12:05', '12:06', '12:07', '12:08', '12:09']; const values = [45, 50, 47, 52, 48, 55, 53, 50, 47, 46]; el.addCategories(categories); el.addSeries('CPU Usage', '#008FFB', values); el.refresh(); console.log('Runtime realtime chart initialized'); } catch (e) { console.error('initRealtimeChartRuntime error', e); } }
+      function clearRealtimeChartRuntime() { const el = document.getElementById('realtime-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime realtime chart cleared'); } catch (e) { console.error('clearRealtimeChartRuntime error', e); } }
+      function randomizeRealtimeChartRuntime() { const el = document.getElementById('realtime-chart-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 10; i++) vals.push(Math.floor(Math.random() * 60) + 20); el.clear(); el.addCategories(['12:00', '12:01', '12:02', '12:03', '12:04', '12:05', '12:06', '12:07', '12:08', '12:09']); el.addSeries('CPU Usage', '#008FFB', vals); el.refresh(); console.log('Runtime realtime chart randomized'); } catch (e) { console.error('randomizeRealtimeChartRuntime error', e); } }
+
+      // Runtime example 9.1 helpers
+      function initSalesAnnotationsChartRuntime() { const el = document.getElementById('sales-annotations-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']); el.addSeries('Sales', '#00E396', [12000, 15000, 18000, 22000, 19000, 25000, 28000]); el.refresh(); console.log('Runtime sales annotations chart initialized'); } catch (e) { console.error('initSalesAnnotationsChartRuntime error', e); } }
+      function clearSalesAnnotationsChartRuntime() { const el = document.getElementById('sales-annotations-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime sales annotations chart cleared'); } catch (e) { console.error('clearSalesAnnotationsChartRuntime error', e); } }
+      function randomizeSalesAnnotationsChartRuntime() { const el = document.getElementById('sales-annotations-chart-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 7; i++) vals.push(Math.floor(Math.random() * 20000) + 10000); el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']); el.addSeries('Sales', '#00E396', vals); el.refresh(); console.log('Runtime sales annotations chart randomized'); } catch (e) { console.error('randomizeSalesAnnotationsChartRuntime error', e); } }
+
+      // Runtime example 10.1 helpers
+      function initMonthlyRevenueColumnRuntime() { const el = document.getElementById('monthly-revenue-column-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']); el.addSeries('Revenue', '#FF4560', [1200, 1500, 1800, 2200, 1900, 2500]); el.refresh(); console.log('Runtime monthly revenue column initialized'); } catch (e) { console.error('initMonthlyRevenueColumnRuntime error', e); } }
+      function clearMonthlyRevenueColumnRuntime() { const el = document.getElementById('monthly-revenue-column-runtime'); if (!el) return; try { el.clear(); console.log('Runtime monthly revenue column cleared'); } catch (e) { console.error('clearMonthlyRevenueColumnRuntime error', e); } }
+      function randomizeMonthlyRevenueColumnRuntime() { const el = document.getElementById('monthly-revenue-column-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 6; i++) vals.push(Math.floor(Math.random() * 2000) + 1000); el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']); el.addSeries('Revenue', '#FF4560', vals); el.refresh(); console.log('Runtime monthly revenue column randomized'); } catch (e) { console.error('randomizeMonthlyRevenueColumnRuntime error', e); } }
+
+      // Runtime example 11.1 helpers
+      function initRevenueGrowthGroupedRuntime() { const el = document.getElementById('revenue-growth-grouped-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']); el.addSeries('Revenue', '#008FFB', [100, 120, 140, 160, 180]); el.addSeries('Target', '#00E396', [110, 130, 135, 155, 175]); el.refresh(); console.log('Runtime grouped column initialized'); } catch (e) { console.error('initRevenueGrowthGroupedRuntime error', e); } }
+      function clearRevenueGrowthGroupedRuntime() { const el = document.getElementById('revenue-growth-grouped-runtime'); if (!el) return; try { el.clear(); console.log('Runtime grouped column cleared'); } catch (e) { console.error('clearRevenueGrowthGroupedRuntime error', e); } }
+      function randomizeRevenueGrowthGroupedRuntime() { const el = document.getElementById('revenue-growth-grouped-runtime'); if (!el) return; try { const a = []; const b = []; for (let i = 0; i < 5; i++) { a.push(Math.floor(Math.random() * 200) + 50); b.push(Math.floor(Math.random() * 200) + 60); } el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']); el.addSeries('Revenue', '#008FFB', a); el.addSeries('Target', '#00E396', b); el.refresh(); console.log('Runtime grouped column randomized'); } catch (e) { console.error('randomizeRevenueGrowthGroupedRuntime error', e); } }
+
+      // Runtime example 12.1 helpers
+      function initBrowserUsagePieRuntime() { const el = document.getElementById('browser-usage-pie-runtime'); if (!el) return; try { el.clear(); el.addSeries('Desktop', '#008FFB', 44); el.addSeries('Mobile', '#00E396', 23); el.addSeries('Tablet', '#FEB019', 33); el.refresh(); console.log('Runtime pie chart initialized'); } catch (e) { console.error('initBrowserUsagePieRuntime error', e); } }
+      function clearBrowserUsagePieRuntime() { const el = document.getElementById('browser-usage-pie-runtime'); if (!el) return; try { el.clear(); console.log('Runtime pie chart cleared'); } catch (e) { console.error('clearBrowserUsagePieRuntime error', e); } }
+      function randomizeBrowserUsagePieRuntime() { const el = document.getElementById('browser-usage-pie-runtime'); if (!el) return; try { const a = ['Desktop', 'Mobile', 'Tablet']; const values = a.map(() => Math.floor(Math.random() * 50) + 10); el.clear(); el.addSeries('Desktop', '#008FFB', values[0]); el.addSeries('Mobile', '#00E396', values[1]); el.addSeries('Tablet', '#FEB019', values[2]); el.refresh(); console.log('Runtime pie chart randomized'); } catch (e) { console.error('randomizeBrowserUsagePieRuntime error', e); } }
+
+      // Runtime example 13.1 helpers
+      function initBrowserMarketDonutRuntime() { const el = document.getElementById('browser-market-donut-runtime'); if (!el) return; try { el.clear(); el.addSeries('Chrome', '#008FFB', 65); el.addSeries('Firefox', '#00E396', 20); el.addSeries('Safari', '#FEB019', 10); el.addSeries('Other', '#FF4560', 5); el.refresh(); console.log('Runtime donut chart initialized'); } catch (e) { console.error('initBrowserMarketDonutRuntime error', e); } }
+      function clearBrowserMarketDonutRuntime() { const el = document.getElementById('browser-market-donut-runtime'); if (!el) return; try { el.clear(); console.log('Runtime donut chart cleared'); } catch (e) { console.error('clearBrowserMarketDonutRuntime error', e); } }
+      function randomizeBrowserMarketDonutRuntime() { const el = document.getElementById('browser-market-donut-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 4; i++) vals.push(Math.floor(Math.random() * 70) + 5); el.clear(); el.addSeries('Chrome', '#008FFB', vals[0]); el.addSeries('Firefox', '#00E396', vals[1]); el.addSeries('Safari', '#FEB019', vals[2]); el.addSeries('Other', '#FF4560', vals[3]); el.refresh(); console.log('Runtime donut chart randomized'); } catch (e) { console.error('randomizeBrowserMarketDonutRuntime error', e); } }
+
+      // Runtime example 14.1 helpers
+      function initMonthlyRevenueAreaRuntime() { const el = document.getElementById('monthly-revenue-area-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']); el.addSeries('Revenue', '#008FFB', [30, 40, 35, 50, 49, 60, 70, 91, 125]); el.refresh(); console.log('Runtime monthly revenue area initialized'); } catch (e) { console.error('initMonthlyRevenueAreaRuntime error', e); } }
+      function clearMonthlyRevenueAreaRuntime() { const el = document.getElementById('monthly-revenue-area-runtime'); if (!el) return; try { el.clear(); console.log('Runtime monthly revenue area cleared'); } catch (e) { console.error('clearMonthlyRevenueAreaRuntime error', e); } }
+      function randomizeMonthlyRevenueAreaRuntime() { const el = document.getElementById('monthly-revenue-area-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 9; i++) vals.push(Math.floor(Math.random() * 120) + 10); el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']); el.addSeries('Revenue', '#008FFB', vals); el.refresh(); console.log('Runtime monthly revenue area randomized'); } catch (e) { console.error('randomizeMonthlyRevenueAreaRuntime error', e); } }
+
+      // Runtime example 15.1 helpers
+      function initSmoothDataAreaRuntime() { const el = document.getElementById('smooth-data-area-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']); el.addSeries('Series 1', '#008FFB', [31, 40, 28, 51, 42, 109, 100]); el.addSeries('Series 2', '#00E396', [11, 32, 45, 32, 34, 52, 41]); el.refresh(); console.log('Runtime smooth data area initialized'); } catch (e) { console.error('initSmoothDataAreaRuntime error', e); } }
+      function clearSmoothDataAreaRuntime() { const el = document.getElementById('smooth-data-area-runtime'); if (!el) return; try { el.clear(); console.log('Runtime smooth data area cleared'); } catch (e) { console.error('clearSmoothDataAreaRuntime error', e); } }
+      function randomizeSmoothDataAreaRuntime() { const el = document.getElementById('smooth-data-area-runtime'); if (!el) return; try { const a = [], b = []; for (let i = 0; i < 7; i++) { a.push(Math.floor(Math.random() * 120) + 10); b.push(Math.floor(Math.random() * 120) + 10); } el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']); el.addSeries('Series 1', '#008FFB', a); el.addSeries('Series 2', '#00E396', b); el.refresh(); console.log('Runtime smooth data area randomized'); } catch (e) { console.error('randomizeSmoothDataAreaRuntime error', e); } }
+
+      // Runtime example 16.1 helpers
+      function initProfitLossAreaRuntime() { const el = document.getElementById('profit-loss-area-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']); el.addSeries('Profit', '#00E396', [10, 41, 35, 51, 49, 62, 69, 91, 148]); el.addSeries('Loss', '#FF4560', [-10, -20, -15, -25, -30, -35, -40, -45, -50]); el.refresh(); console.log('Runtime profit-loss area initialized'); } catch (e) { console.error('initProfitLossAreaRuntime error', e); } }
+      function clearProfitLossAreaRuntime() { const el = document.getElementById('profit-loss-area-runtime'); if (!el) return; try { el.clear(); console.log('Runtime profit-loss area cleared'); } catch (e) { console.error('clearProfitLossAreaRuntime error', e); } }
+      function randomizeProfitLossAreaRuntime() { const el = document.getElementById('profit-loss-area-runtime'); if (!el) return; try { const a = [], b = []; for (let i = 0; i < 9; i++) { a.push(Math.floor(Math.random() * 150) + 10); b.push(Math.floor(Math.random() * -100) - 1); } el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']); el.addSeries('Profit', '#00E396', a); el.addSeries('Loss', '#FF4560', b); el.refresh(); console.log('Runtime profit-loss area randomized'); } catch (e) { console.error('randomizeProfitLossAreaRuntime error', e); } }
+
+      // Runtime example 17.1 helpers
+      function initTrafficSourcesStackedRuntime() { const el = document.getElementById('traffic-sources-stacked-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']); el.addSeries('Organic Search', '#008FFB', [44, 55, 57, 56, 61, 58, 63, 60, 66]); el.addSeries('Direct', '#00E396', [76, 85, 101, 98, 87, 105, 91, 114, 94]); el.addSeries('Social Media', '#FEB019', [35, 41, 36, 26, 45, 48, 52, 53, 41]); el.refresh(); console.log('Runtime traffic sources stacked initialized'); } catch (e) { console.error('initTrafficSourcesStackedRuntime error', e); } }
+      function clearTrafficSourcesStackedRuntime() { const el = document.getElementById('traffic-sources-stacked-runtime'); if (!el) return; try { el.clear(); console.log('Runtime traffic sources stacked cleared'); } catch (e) { console.error('clearTrafficSourcesStackedRuntime error', e); } }
+      function randomizeTrafficSourcesStackedRuntime() { const el = document.getElementById('traffic-sources-stacked-runtime'); if (!el) return; try { const a = [], b = [], c = []; for (let i = 0; i < 9; i++) { a.push(Math.floor(Math.random() * 100)); b.push(Math.floor(Math.random() * 120)); c.push(Math.floor(Math.random() * 80)); } el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']); el.addSeries('Organic Search', '#008FFB', a); el.addSeries('Direct', '#00E396', b); el.addSeries('Social Media', '#FEB019', c); el.refresh(); console.log('Runtime traffic sources stacked randomized'); } catch (e) { console.error('randomizeTrafficSourcesStackedRuntime error', e); } }
+
+      // Runtime example 18.1 helpers
+      function initRangeAreaRuntime() { const el = document.getElementById('range-area-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']); el.addSeries('New York Temperature', '#008FFB', [{ x: 'Jan', y: [-2, 4] }, { x: 'Feb', y: [-1, 6] }, { x: 'Mar', y: [3, 10] }, { x: 'Apr', y: [8, 16] }, { x: 'May', y: [13, 22] }, { x: 'Jun', y: [18, 26] }, { x: 'Jul', y: [21, 29] }, { x: 'Aug', y: [21, 28] }, { x: 'Sep', y: [17, 24] }, { x: 'Oct', y: [11, 18] }, { x: 'Nov', y: [6, 12] }, { x: 'Dec', y: [1, 7] }]); el.refresh(); console.log('Runtime range area initialized'); } catch (e) { console.error('initRangeAreaRuntime error', e); } }
+      function clearRangeAreaRuntime() { const el = document.getElementById('range-area-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime range area cleared'); } catch (e) { console.error('clearRangeAreaRuntime error', e); } }
+      function randomizeRangeAreaRuntime() { const el = document.getElementById('range-area-chart-runtime'); if (!el) return; try { const vals = []; const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; const series = []; for (let i = 0; i < 12; i++) { const base = Math.floor(Math.random() * 20); const low = base - Math.floor(Math.random() * 10); const high = base + Math.floor(Math.random() * 10); series.push({ x: months[i], y: [low, high] }); } el.clear(); el.addCategories(months); el.addSeries('New York Temperature', '#008FFB', series); el.refresh(); console.log('Runtime range area randomized'); } catch (e) { console.error('randomizeRangeAreaRuntime error', e); } }
+
+      // Runtime example 19.1 helpers
+      function initDataCorrelationScatterRuntime() { const el = document.getElementById('data-correlation-scatter-runtime'); if (!el) return; try { el.clear(); el.addSeries('Data Points', '#008FFB', [[10, 20], [15, 25], [20, 30], [25, 35], [30, 40]]); el.refresh(); console.log('Runtime scatter chart initialized'); } catch (e) { console.error('initDataCorrelationScatterRuntime error', e); } }
+      function clearDataCorrelationScatterRuntime() { const el = document.getElementById('data-correlation-scatter-runtime'); if (!el) return; try { el.clear(); console.log('Runtime scatter chart cleared'); } catch (e) { console.error('clearDataCorrelationScatterRuntime error', e); } }
+      function randomizeDataCorrelationScatterRuntime() { const el = document.getElementById('data-correlation-scatter-runtime'); if (!el) return; try { const pts = []; for (let i = 0; i < 8; i++) { pts.push([Math.floor(Math.random() * 40) + 10, Math.floor(Math.random() * 40) + 10]); } el.clear(); el.addSeries('Data Points', '#008FFB', pts); el.refresh(); console.log('Runtime scatter chart randomized'); } catch (e) { console.error('randomizeDataCorrelationScatterRuntime error', e); } }
+
+      // Runtime example 20.1 helpers
+      function initProgressRadialBarRuntime() { const el = document.getElementById('progress-radial-bar-runtime'); if (!el) return; try { el.clear(); el.addSeries('Progress', '#008FFB', 70); el.addSeries('Score', '#00E396', 80); el.addSeries('Rating', '#FEB019', 90); el.refresh(); console.log('Runtime progress radial initialized'); } catch (e) { console.error('initProgressRadialBarRuntime error', e); } }
+      function clearProgressRadialBarRuntime() { const el = document.getElementById('progress-radial-bar-runtime'); if (!el) return; try { el.clear(); console.log('Runtime progress radial cleared'); } catch (e) { console.error('clearProgressRadialBarRuntime error', e); } }
+      function randomizeProgressRadialBarRuntime() { const el = document.getElementById('progress-radial-bar-runtime'); if (!el) return; try { el.clear(); el.addSeries('Progress', '#008FFB', Math.floor(Math.random() * 40) + 60); el.addSeries('Score', '#00E396', Math.floor(Math.random() * 40) + 60); el.addSeries('Rating', '#FEB019', Math.floor(Math.random() * 40) + 60); el.refresh(); console.log('Runtime progress radial randomized'); } catch (e) { console.error('randomizeProgressRadialBarRuntime error', e); } }
+
+      // Runtime example 21.1 helpers
+      function initCricketScoreRadialRuntime() { const el = document.getElementById('cricket-score-radial-runtime'); if (!el) return; try { el.clear(); el.addSeries('Cricket', '#008FFB', 70); el.refresh(); console.log('Runtime cricket radial initialized'); } catch (e) { console.error('initCricketScoreRadialRuntime error', e); } }
+      function clearCricketScoreRadialRuntime() { const el = document.getElementById('cricket-score-radial-runtime'); if (!el) return; try { el.clear(); console.log('Runtime cricket radial cleared'); } catch (e) { console.error('clearCricketScoreRadialRuntime error', e); } }
+      function randomizeCricketScoreRadialRuntime() { const el = document.getElementById('cricket-score-radial-runtime'); if (!el) return; try { el.clear(); el.addSeries('Cricket', '#008FFB', Math.floor(Math.random() * 30) + 60); el.refresh(); console.log('Runtime cricket radial randomized'); } catch (e) { console.error('randomizeCricketScoreRadialRuntime error', e); } }
+
+      // Runtime example 22.1 helpers
+      function initCricketDashedRadialRuntime() { const el = document.getElementById('cricket-dashed-radial-runtime'); if (!el) return; try { el.clear(); el.addSeries('Cricket', '#008FFB', 70); el.refresh(); console.log('Runtime cricket dashed radial initialized'); } catch (e) { console.error('initCricketDashedRadialRuntime error', e); } }
+      function clearCricketDashedRadialRuntime() { const el = document.getElementById('cricket-dashed-radial-runtime'); if (!el) return; try { el.clear(); console.log('Runtime cricket dashed radial cleared'); } catch (e) { console.error('clearCricketDashedRadialRuntime error', e); } }
+      function randomizeCricketDashedRadialRuntime() { const el = document.getElementById('cricket-dashed-radial-runtime'); if (!el) return; try { el.clear(); el.addSeries('Cricket', '#008FFB', Math.floor(Math.random() * 30) + 60); el.refresh(); console.log('Runtime cricket dashed radial randomized'); } catch (e) { console.error('randomizeCricketDashedRadialRuntime error', e); } }
+
+      // Runtime example 23.1 helpers
+      function initHorizontalBarChartRuntime() { const el = document.getElementById('horizontal-bar-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']); el.addSeries('Revenue', '#008FFB', [100, 120, 140, 160, 180]); el.refresh(); console.log('Runtime horizontal bar initialized'); } catch (e) { console.error('initHorizontalBarChartRuntime error', e); } }
+      function clearHorizontalBarChartRuntime() { const el = document.getElementById('horizontal-bar-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime horizontal bar cleared'); } catch (e) { console.error('clearHorizontalBarChartRuntime error', e); } }
+      function randomizeHorizontalBarChartRuntime() { const el = document.getElementById('horizontal-bar-chart-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 5; i++) vals.push(Math.floor(Math.random() * 200) + 80); el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']); el.addSeries('Revenue', '#008FFB', vals); el.refresh(); console.log('Runtime horizontal bar randomized'); } catch (e) { console.error('randomizeHorizontalBarChartRuntime error', e); } }
+
+      // Runtime example 24.1 helpers
+      function initHorizontalBarGroupedRuntime() { const el = document.getElementById('horizontal-bar-grouped-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']); el.addSeries('Revenue', '#008FFB', [100, 120, 140, 160, 180]); el.addSeries('Target', '#00E396', [110, 130, 135, 155, 175]); el.refresh(); console.log('Runtime horizontal grouped bar initialized'); } catch (e) { console.error('initHorizontalBarGroupedRuntime error', e); } }
+      function clearHorizontalBarGroupedRuntime() { const el = document.getElementById('horizontal-bar-grouped-runtime'); if (!el) return; try { el.clear(); console.log('Runtime horizontal grouped bar cleared'); } catch (e) { console.error('clearHorizontalBarGroupedRuntime error', e); } }
+      function randomizeHorizontalBarGroupedRuntime() { const el = document.getElementById('horizontal-bar-grouped-runtime'); if (!el) return; try { const a = []; const b = []; for (let i = 0; i < 5; i++) { a.push(Math.floor(Math.random() * 200) + 50); b.push(Math.floor(Math.random() * 200) + 50); } el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May']); el.addSeries('Revenue', '#008FFB', a); el.addSeries('Target', '#00E396', b); el.refresh(); console.log('Runtime horizontal grouped bar randomized'); } catch (e) { console.error('randomizeHorizontalBarGroupedRuntime error', e); } }
+
+      // Runtime example 25.1 helpers
+      function initRadarComparisonRuntime() { const el = document.getElementById('radar-comparison-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Strength', 'Speed', 'Endurance', 'Agility', 'Technique', 'Luck']); el.addSeries('Car 1', '#AA00FF', [80, 50, 30, 40, 100, 20]); el.refresh(); console.log('Runtime radar initialized'); } catch (e) { console.error('initRadarComparisonRuntime error', e); } }
+      function clearRadarComparisonRuntime() { const el = document.getElementById('radar-comparison-runtime'); if (!el) return; try { el.clear(); console.log('Runtime radar cleared'); } catch (e) { console.error('clearRadarComparisonRuntime error', e); } }
+      function randomizeRadarComparisonRuntime() { const el = document.getElementById('radar-comparison-runtime'); if (!el) return; try { const vals = []; for (let i = 0; i < 6; i++) vals.push(Math.floor(Math.random() * 100) + 10); el.clear(); el.addCategories(['Strength', 'Speed', 'Endurance', 'Agility', 'Technique', 'Luck']); el.addSeries('Car 1', '#AA00FF', vals); el.refresh(); console.log('Runtime radar randomized'); } catch (e) { console.error('randomizeRadarComparisonRuntime error', e); } }
+
+      // Runtime example 25a.1 helpers
+      function initRadarMultiSeriesRuntime() { const el = document.getElementById('radar-multi-series-runtime'); if (!el) return; try { el.clear(); el.addCategories(['2011', '2012', '2013', '2014', '2015', '2016']); el.addSeries('Series 1', '#AA00FF', [80, 50, 30, 40, 100, 20]); el.addSeries('Series 2', '#FF0066', [20, 30, 40, 80, 20, 80]); el.addSeries('Series 3', '#00AAFF', [44, 76, 78, 13, 43, 10]); el.refresh(); console.log('Runtime radar-multi-series initialized'); } catch (e) { console.error('initRadarMultiSeriesRuntime error', e); } }
+      function clearRadarMultiSeriesRuntime() { const el = document.getElementById('radar-multi-series-runtime'); if (!el) return; try { el.clear(); console.log('Runtime radar-multi-series cleared'); } catch (e) { console.error('clearRadarMultiSeriesRuntime error', e); } }
+      function randomizeRadarMultiSeriesRuntime() { const el = document.getElementById('radar-multi-series-runtime'); if (!el) return; try { const a = []; const b = []; const c = []; for (let i = 0; i < 6; i++) { a.push(Math.floor(Math.random() * 100) + 10); b.push(Math.floor(Math.random() * 100) + 10); c.push(Math.floor(Math.random() * 100) + 10); } el.clear(); el.addCategories(['2011', '2012', '2013', '2014', '2015', '2016']); el.addSeries('Series 1', '#AA00FF', a); el.addSeries('Series 2', '#FF0066', b); el.addSeries('Series 3', '#00AAFF', c); el.refresh(); console.log('Runtime radar-multi-series randomized'); } catch (e) { console.error('randomizeRadarMultiSeriesRuntime error', e); } }
+
+      // Runtime example 26–29 helpers (placeholders)
+      function initExample26Runtime() { const el = document.getElementById('example-26-chart-runtime'); if (!el) return; try { el.clear(); el.addSeries('House A', '#FF7A59', 44); el.addSeries('House B', '#FFD166', 20); el.addSeries('House C', '#06D6A0', 13); el.addSeries('House D', '#4CC9F0', 43); el.addSeries('House E', '#7209B7', 27); el.refresh(); console.log('Runtime example 26 initialized'); } catch (e) { console.error('initExample26Runtime error', e); } }
+      function clearExample26Runtime() { const el = document.getElementById('example-26-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime example 26 cleared'); } catch (e) { console.error('clearExample26Runtime error', e); } }
+      function randomizeExample26Runtime() { const el = document.getElementById('example-26-chart-runtime'); if (!el) return; try { el.clear(); el.addSeries('House A', '#FF7A59', Math.floor(Math.random() * 90) + 10); el.addSeries('House B', '#FFD166', Math.floor(Math.random() * 90) + 10); el.addSeries('House C', '#06D6A0', Math.floor(Math.random() * 90) + 10); el.addSeries('House D', '#4CC9F0', Math.floor(Math.random() * 90) + 10); el.addSeries('House E', '#7209B7', Math.floor(Math.random() * 90) + 10); el.refresh(); console.log('Runtime example 26 randomized'); } catch (e) { console.error('randomizeExample26Runtime error', e); } }
+
+      function initExample27Runtime() { const el = document.getElementById('example-27-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Q1', 'Q2', 'Q3', 'Q4']); el.addSeries('Product A', '#008FFB', [44, 55, 41, 67]); el.addSeries('Product B', '#00E396', [13, 23, 20, 8]); el.addSeries('Product C', '#FEB019', [11, 17, 15, 15]); el.refresh(); console.log('Runtime example 27 initialized'); } catch (e) { console.error('initExample27Runtime error', e); } }
+      function clearExample27Runtime() { const el = document.getElementById('example-27-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime example 27 cleared'); } catch (e) { console.error('clearExample27Runtime error', e); } }
+      function randomizeExample27Runtime() { const el = document.getElementById('example-27-chart-runtime'); if (!el) return; try { const a = []; const b = []; const c = []; for (let i = 0; i < 4; i++) { a.push(Math.floor(Math.random() * 100) + 10); b.push(Math.floor(Math.random() * 100) + 10); c.push(Math.floor(Math.random() * 100) + 10); } el.clear(); el.addCategories(['Q1', 'Q2', 'Q3', 'Q4']); el.addSeries('Product A', '#008FFB', a); el.addSeries('Product B', '#00E396', b); el.addSeries('Product C', '#FEB019', c); el.refresh(); console.log('Runtime example 27 randomized'); } catch (e) { console.error('randomizeExample27Runtime error', e); } }
+
+      function initExample28Runtime() { const el = document.getElementById('example-28-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']); el.addSeries('Organic', '#008FFB', [44, 55, 41, 67, 22, 43, 21]); el.addSeries('Direct', '#00E396', [13, 23, 20, 8, 13, 27, 33]); el.addSeries('Referral', '#FEB019', [11, 17, 15, 15, 21, 14, 22]); el.refresh(); console.log('Runtime example 28 initialized'); } catch (e) { console.error('initExample28Runtime error', e); } }
+      function clearExample28Runtime() { const el = document.getElementById('example-28-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime example 28 cleared'); } catch (e) { console.error('clearExample28Runtime error', e); } }
+      function randomizeExample28Runtime() { const el = document.getElementById('example-28-chart-runtime'); if (!el) return; try { const a = [], b = [], c = []; for (let i = 0; i < 7; i++) { a.push(Math.floor(Math.random() * 120) + 10); b.push(Math.floor(Math.random() * 80) + 10); c.push(Math.floor(Math.random() * 90) + 10); } el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']); el.addSeries('Organic', '#008FFB', a); el.addSeries('Direct', '#00E396', b); el.addSeries('Referral', '#FEB019', c); el.refresh(); console.log('Runtime example 28 randomized'); } catch (e) { console.error('randomizeExample28Runtime error', e); } }
+
+      function initExample29Runtime() { const el = document.getElementById('example-29-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['2016', '2017', '2018', '2019', '2020']); el.addSeries('North', '#008FFB', [44, 55, 41, 37, 22]); el.addSeries('South', '#00E396', [13, 23, 20, 8, 13]); el.addSeries('East', '#FEB019', [11, 17, 15, 15, 21]); el.refresh(); console.log('Runtime example 29 initialized'); } catch (e) { console.error('initExample29Runtime error', e); } }
+      function clearExample29Runtime() { const el = document.getElementById('example-29-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime example 29 cleared'); } catch (e) { console.error('clearExample29Runtime error', e); } }
+      function randomizeExample29Runtime() { const el = document.getElementById('example-29-chart-runtime'); if (!el) return; try { const north = [], south = [], east = []; for (let i = 0; i < 5; i++) { north.push(Math.floor(Math.random() * 120) + 10); south.push(Math.floor(Math.random() * 80) + 10); east.push(Math.floor(Math.random() * 90) + 10); } el.clear(); el.addCategories(['2016', '2017', '2018', '2019', '2020']); el.addSeries('North', '#008FFB', north); el.addSeries('South', '#00E396', south); el.addSeries('East', '#FEB019', east); el.refresh(); console.log('Runtime example 29 randomized'); } catch (e) { console.error('randomizeExample29Runtime error', e); } }
+
+      function initExample32Runtime() { const el = document.getElementById('example-32-chart-runtime'); if (!el) return; try { el.clear(); el.addSeries('Sales', "#008FFB", [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51]); el.refresh(); console.log('Runtime example 32 initialized'); } catch (e) { console.error('initExample32Runtime error', e); } }
+
+      function randomizeExample32Runtime() { const el = document.getElementById('example-32-chart-runtime'); if (!el) return; try { const vals = []; const len = 12; for (let i = 0; i < len; i++) vals.push(Math.floor(Math.random() * 80) + 10); el.clear(); el.addSeries('Sales', "#008FFB", vals); el.refresh(); console.log('Runtime example 32 randomized'); } catch (e) { console.error('randomizeExample32Runtime error', e); } }
+
+      function clearExample32Runtime() { const el = document.getElementById('example-32-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime example 32 cleared'); } catch (e) { console.error('clearExample32Runtime error', e); } }
+
+      function initExample33Runtime() { const el = document.getElementById('example-33-chart-runtime'); if (!el) return; try { el.clear(); el.addSeries('Sales', "#008FFB", [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51]); el.refresh(); console.log('Runtime example 33 initialized'); } catch (e) { console.error('initExample33Runtime error', e); } }
+
+      function randomizeExample33Runtime() { const el = document.getElementById('example-33-chart-runtime'); if (!el) return; try { const vals = []; const len = 12; for (let i = 0; i < len; i++) vals.push(Math.floor(Math.random() * 80) + 10); el.clear(); el.addSeries('Sales', "#008FFB", vals); el.refresh(); console.log('Runtime example 33 randomized'); } catch (e) { console.error('randomizeExample33Runtime error', e); } }
+
+      function clearExample33Runtime() { const el = document.getElementById('example-33-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime example 33 cleared'); } catch (e) { console.error('clearExample33Runtime error', e); } }
+
+      function initExample34Runtime() { const el = document.getElementById('example-34-chart-runtime'); if (!el) return; try { el.clear(); el.addSeries('Sales', "#008FFB", [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51]); el.refresh(); console.log('Runtime example 34 initialized'); } catch (e) { console.error('initExample34Runtime error', e); } }
+
+      function randomizeExample34Runtime() { const el = document.getElementById('example-34-chart-runtime'); if (!el) return; try { const vals = []; const len = 12; for (let i = 0; i < len; i++) vals.push(Math.floor(Math.random() * 80) + 10); el.clear(); el.addSeries('Sales', "#008FFB", vals); el.refresh(); console.log('Runtime example 34 randomized'); } catch (e) { console.error('randomizeExample34Runtime error', e); } }
+
+      function clearExample34Runtime() { const el = document.getElementById('example-34-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime example 34 cleared'); } catch (e) { console.error('clearExample34Runtime error', e); } }
+
+
 
       // Demo: Auto-update every 10 seconds
       setInterval(updateRandomData, 10000);
@@ -858,6 +2100,34 @@
         data.push([randomTime, y]);
       }
       lastDate = Math.max(...data.map(d => d[0]));
+
+      // Build a11y-friendly tooltips for example nav links, using the H2 titles.
+      (function attachExampleNavTooltips() {
+        try {
+          const nav = document.querySelector('.examples-nav');
+          if (!nav) return;
+          const anchors = nav.querySelectorAll('a[href^="#example-"]');
+          anchors.forEach(a => {
+            try {
+              const href = a.getAttribute('href');
+              if (!href || !href.startsWith('#')) return;
+              const id = href.substring(1);
+              const h = document.getElementById(id);
+              if (!h) return;
+              // Use the H2 text content for the tooltip. Keep the emoji and label.
+              const titleText = (h.textContent || '').trim().replace(/\s+/g, ' ');
+              a.setAttribute('data-title', titleText);
+              a.setAttribute('title', titleText); // fallback native tooltip
+              a.setAttribute('aria-label', titleText);
+              a.classList.add('tooltip-anchor');
+            } catch (err) {
+              /* ignore anchor-specific errors */
+            }
+          });
+        } catch (err) {
+          console.error('attachExampleNavTooltips error', err);
+        }
+      })();
 
       let intervalRuns = 0;
       const interval = window.setInterval(function () {
@@ -1111,21 +2381,14 @@
           } catch (e) {
             // ignore if MutationObserver unavailable
           }
+          // Initialize the runtime variant of the simple line chart
+          try { if (typeof initSimpleLineChartRuntime === 'function') initSimpleLineChartRuntime(); } catch (e) { /* ignore */ }
         } catch (e) {
           // non-fatal
           console.warn('Failed to auto-generate code sections:', e);
         }
       });
 
-      // Scroll to example 10 after page loads
-      document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-          const example10 = document.getElementById('example-10');
-          if (example10) {
-            example10.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 100); // Small delay to ensure everything is rendered
-      });
     </script>
 </body>
 

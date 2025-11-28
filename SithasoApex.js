@@ -1,11 +1,47 @@
 // ApexCharts should be loaded globally via CDN
 // <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
+/**
+ * Web Component: `sithaso-apex`
+ *
+ * A lightweight wrapper around ApexCharts that enables declarative chart
+ * configuration via HTML attributes and provides a small runtime API for
+ * programmatic updates. The component supports a wide range of ApexCharts
+ * chart types and formats input data in several common shapes.
+ *
+ * Observed attributes (short list here — the code registers all observed
+ * attributes in `observedAttributes`): `type`, `data`, `options`, `height`,
+ * `width`, `show-legend`, `show-toolbar`, `title`, `categories`, and more.
+ *
+ * Example markup:
+ * ```html
+ * <sithaso-apex
+ *   type="line"
+ *   title="Simple Line Chart"
+ *   categories='["Mon","Tue","Wed"]'
+ *   data='[{"name":"Series 1","data":[10,20,30]}]'>
+ * </sithaso-apex>
+ * ```
+ *
+ * Runtime API (selected):
+ * - `clear()` - destroy current chart and reset runtime memory
+ * - `refresh()` - apply current runtime state to attributes and re-render chart
+ * - `updateData(newData)` - set the `data` attribute (triggers refresh)
+ * - `updateOptions(newOptions)` - merge and set `options` attribute
+ * - `getChart()` - return the underlying ApexCharts instance
+ * - `addSeries*`/`addCategory`/`addColors` - runtime series/colors management
+ */
+
 class SithasoApex extends HTMLElement {
   static get observedAttributes() {
-    return ['type', 'data', 'options', 'height', 'width', 'theme', 'loading', 'show-legend', 'legend-position', 'show-toolbar', 'title', 'show-data-labels', 'data-label-orientation', 'data-label-position', 'x-axis-title', 'y-axis-title', 'bar-orientation', 'curve', 'line-width', 'categories', 'donut-show-total', 'hollow-size', 'dashed-radial', 'track-width', 'bar', 'x-axis-offsety', 'x-axis-label-rotate', 'x-axis-label-rotate-offsety', 'gradient', 'realtime', 'marker-size', 'stacked', 'border-radius', 'x-axis-output-format', 'y-axis-output-format', 'column-width', 'start-angle', 'end-angle', 'bar-labels'];
+    return ['type', 'data', 'options', 'height', 'width', 'theme', 'loading', 'show-legend', 'legend-position', 'show-toolbar', 'title', 'show-data-labels', 'data-label-orientation', 'data-label-position', 'x-axis-title', 'y-axis-title', 'bar-orientation', 'curve', 'line-width', 'categories', 'donut-show-total', 'hollow-size', 'dashed-radial', 'track-width', 'bar', 'x-axis-offsety', 'x-axis-label-rotate', 'x-axis-label-rotate-offsety', 'gradient', 'realtime', 'marker-size', 'stacked', 'border-radius', 'x-axis-output-format', 'y-axis-output-format', 'column-width', 'start-angle', 'end-angle', 'bar-labels', 'sparkline','grid-show','tooltip-enabled','subtitle','subtitle-font-size','title-font-size'];
   }
 
+  /**
+   * Construct the `sithaso-apex` component and initialize internal state.
+   * The component maintains a memory store of runtime series, categories and
+   * colors to support dynamic manipulation APIs such as `addSeriesValue`.
+   */
   constructor() {
     super();
     this.chart = null;
@@ -18,13 +54,25 @@ class SithasoApex extends HTMLElement {
     this._seriesMap = new Map(); // Store series in memory for runtime management
     this._categories = []; // Store categories in memory for runtime management
     this._colors = []; // Store colors in memory for runtime management
+    // Internal flag to suppress attributeChangedCallback when writing attributes internally
+    this._internalAttributeMutate = false;
   }
 
+  /**
+   * Called when the element is inserted into the DOM.
+   * Ensures `ApexCharts` is available and performs an initial render.
+   * @private
+   */
   connectedCallback() {
     this.checkApexCharts();
     this.render();
   }
 
+  /**
+   * Called when the element is removed from the DOM. Cleans up the chart
+   * by destroying the ApexCharts instance if present.
+   * @private
+   */
   disconnectedCallback() {
     if (this.chart) {
       try {
@@ -36,6 +84,14 @@ class SithasoApex extends HTMLElement {
   }
 
   // Debounced update method to batch multiple attribute changes
+  /**
+   * Queue an attribute change for debounced application.
+   * Multiple attribute changes are batched together and applied after the
+   * configured `_updateDelay` to reduce needless re-renders.
+   * @private
+   * @param {string} attributeName - Attribute being modified
+   * @param {string} newValue - New attribute value as a string
+   */
   _scheduleUpdate(attributeName, newValue) {
     // Clear any existing timeout
     if (this._updateTimeout) {
@@ -52,6 +108,13 @@ class SithasoApex extends HTMLElement {
   }
 
   // Apply all pending updates at once
+  /**
+   * Apply any queued attribute changes to the live chart instance. This
+   * method detects and handles `data` and `options` updates (which call
+   * `updateSeries` and `updateOptions` on ApexCharts respectively), and
+   * applies visual attribute changes like title and size.
+   * @private
+   */
   _applyPendingUpdates() {
     if (!this.chart || Object.keys(this._pendingUpdates).length === 0) {
       return;
@@ -94,7 +157,7 @@ class SithasoApex extends HTMLElement {
     }
 
     // Process visual attribute updates
-    const visualAttributes = ['title', 'height', 'width', 'show-legend', 'legend-position', 'show-toolbar', 'show-data-labels', 'data-label-orientation', 'data-label-position'];
+    const visualAttributes = ['title', 'height', 'width', 'show-legend', 'legend-position', 'show-toolbar', 'show-data-labels', 'data-label-orientation', 'data-label-position', 'sparkline', 'grid-show', 'tooltip-enabled', 'subtitle', 'subtitle-font-size', 'title-font-size'];
     const visualUpdates = {};
 
     for (const [attr, value] of Object.entries(updates)) {
@@ -123,6 +186,21 @@ class SithasoApex extends HTMLElement {
           visualUpdates.plotOptions.bar = visualUpdates.plotOptions.bar || {};
           visualUpdates.plotOptions.bar.dataLabels = visualUpdates.plotOptions.bar.dataLabels || {};
           visualUpdates.plotOptions.bar.dataLabels.position = value;
+        } else if (attr === 'sparkline') {
+          visualUpdates.chart = visualUpdates.chart || {};
+          visualUpdates.chart.sparkline = { enabled: value === 'true' };
+        } else if (attr === 'grid-show') {
+          visualUpdates.grid = visualUpdates.grid || {};
+          visualUpdates.grid.show = value === 'true';
+        } else if (attr === 'tooltip-enabled') {
+          visualUpdates.tooltip = visualUpdates.tooltip || {};
+          visualUpdates.tooltip.enabled = value === 'true';
+        } else if (attr === 'subtitle') {
+          visualUpdates.subtitle = { ...(visualUpdates.subtitle || {}), text: value };
+        } else if (attr === 'subtitle-font-size') {
+          visualUpdates.subtitle = { ...(visualUpdates.subtitle || {}), style: { ...((visualUpdates.subtitle && visualUpdates.subtitle.style) || {}), fontSize: value } };
+        } else if (attr === 'title-font-size') {
+          visualUpdates.title = { ...(visualUpdates.title || {}), style: { ...((visualUpdates.title && visualUpdates.title.style) || {}), fontSize: value } };
         }
       }
     }
@@ -138,6 +216,10 @@ class SithasoApex extends HTMLElement {
   }
 
   // Force immediate application of any pending updates
+  /**
+   * Immediately flush any pending updates.
+   * This cancels the debounced `setTimeout` and applies updates synchronously.
+   */
   forceUpdate() {
     if (this._updateTimeout) {
       clearTimeout(this._updateTimeout);
@@ -147,12 +229,26 @@ class SithasoApex extends HTMLElement {
   }
 
   // Set the debounce delay (in milliseconds)
+  /**
+   * Set the debounce delay used by `_scheduleUpdate`.
+   * @param {number} delay - Milliseconds to wait before applying pending updates
+   */
   setUpdateDelay(delay) {
     this._updateDelay = Math.max(0, delay);
   }
 
+  /**
+   * Called when an observed attribute changes. This method debounces updates
+   * and schedules a chart update unless the mutation originated from an
+   * internal operation (tracked by `_internalAttributeMutate`).
+   * @param {string} name - Attribute name
+   * @param {string|null} oldValue - Old attribute value
+   * @param {string|null} newValue - New attribute value
+   */
   attributeChangedCallback(name, oldValue, newValue) {
     if (oldValue === newValue) return;
+    // Ignore attribute changes triggered by internal writes
+    if (this._internalAttributeMutate) return;
 
     if (name === 'loading') {
       this._isLoading = newValue !== null;
@@ -174,6 +270,13 @@ class SithasoApex extends HTMLElement {
     }
   }
 
+  /**
+   * Ensure the `ApexCharts` global is available. When missing, display an
+   * error on the component and return false so calling code can avoid
+   * constructing an ApexCharts instance.
+   * @private
+   * @returns {boolean}
+   */
   checkApexCharts() {
     if (typeof ApexCharts === 'undefined') {
       console.error('ApexCharts is not loaded. Please include: <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>');
@@ -183,10 +286,22 @@ class SithasoApex extends HTMLElement {
     return true;
   }
 
+  /**
+   * Render a visible error message inside the component container.
+   * This writes a simple message into the element's `innerHTML` for
+   * quick debugging when creating charts fails.
+   * @param {string} message - Error message text to display
+   */
   showError(message) {
     this.innerHTML = `<div style="color: red; padding: 20px; text-align: center; border: 1px solid #ffcccc; background: #fff5f5;">${message}</div>`;
   }
 
+  /**
+   * Update the DOM's loading indicator state based on the `loading`
+   * attribute. A minimal overlay is added/removed to visually indicate
+   * that the chart is in a loading state.
+   * @private
+   */
   updateLoadingState() {
     if (this._isLoading) {
       this.style.opacity = '0.6';
@@ -216,6 +331,20 @@ class SithasoApex extends HTMLElement {
   }
 
   // Format a single axis value according to the requested output format
+  /**
+   * Format axis values for display based on configured output format.
+   * Common formats include:
+   * - 'money'
+   * - 'thousand'
+   * - 'normal'
+   * - 'date'
+   * - 'datetime'
+   * - 'time'
+   * @private
+   * @param {*} val - The axis value to format
+   * @param {string} fmt - Output format key
+   * @returns {string|*} Formatted label or original value if no formatting applied
+   */
   _formatValueForAxis(val, fmt) {
     if (!fmt || fmt === 'normal') return val;
     // Try numeric formatting first for money/thousand
@@ -262,6 +391,12 @@ class SithasoApex extends HTMLElement {
   }
 
   // Inject label formatter functions into defaultOptions.xaxis/yaxis when not provided by user options
+  /**
+   * Attach label formatters to `defaultOptions.xaxis` or `defaultOptions.yaxis`
+   * based on provided `x-axis-output-format` and `y-axis-output-format`.
+   * @private
+   * @param {object} defaultOptions - Base ApexCharts default options to mutate
+   */
   _applyAxisOutputFormats(defaultOptions) {
     try {
       const xfmt = this.xAxisOutputFormat;
@@ -299,6 +434,13 @@ class SithasoApex extends HTMLElement {
     }
   }
 
+  /**
+   * Render the component DOM and instantiate the ApexCharts instance
+   * using the current attributes (`type`, `data`, `options`, etc.). This
+   * is typically called on initial connect and when a full chart redraw
+   * is required.
+   * @private
+   */
   render() {
     if (!this.checkApexCharts()) return;
 
@@ -330,6 +472,13 @@ class SithasoApex extends HTMLElement {
     this.updateLoadingState();
   }
 
+  /**
+   * Choose and delegate to the correct `create*Chart()` factory method
+   * for the current `type` attribute. Each factory builds chart-specific
+   * defaults then instantiates the ApexCharts instance.
+   * @private
+   * @param {HTMLElement} container - DOM container for the chart
+   */
   createChart(container) {
     const type = this.getAttribute('type') || 'line';
     const chartType = this.mapChartType(type);
@@ -360,6 +509,9 @@ class SithasoApex extends HTMLElement {
       case 'polarArea':
         this.createPolarAreaChart(container);
         break;
+      case 'rangeArea':
+        this.createRangeAreaChart(container);
+        break;
       case 'radar':
         this.createRadarChart(container);
         break;
@@ -376,20 +528,82 @@ class SithasoApex extends HTMLElement {
   // ===== UTILITY METHODS =====
 
   // Get base default options applicable to all chart types
+  /**
+   * Return a base options object for the provided chartType that contains
+   * common, sensible defaults used across chart factories (legends, grid,
+   * tooltips, responsive behavior, etc.). Caller can shallow merge this
+   * object with type-specific defaults and user-provided `options`.
+   * @param {string} chartType - ApexCharts chart type string (line, bar, pie...)
+   * @returns {object} Default options object used as base for chart creation
+   */
   getBaseDefaultOptions(chartType = 'line') {
     const isCartesian = ['line', 'area', 'bar', 'scatter'].includes(chartType);
     const isCircular = ['pie', 'donut', 'radialBar'].includes(chartType);
+    const gridShow = this.getAttribute('grid-show') !== 'false';
+    const tooltipEnabled = this.getAttribute('tooltip-enabled') !== 'false';
+    const showLegend = this.getAttribute('show-legend') !== 'false';
+    const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    const title = this.getAttribute('title') || '';
+    const titleFontSize = this.getAttribute('title-font-size') || '14px';
+    const subtitle = this.getAttribute('subtitle') || '';
+    const subtitleFontSize = this.getAttribute('subtitle-font-size') || '12px';
+    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    const showDataLabels = this.showDataLabels;
+    const xAxisTitle = this.getAttribute('x-axis-title') || '';
+    const yAxisTitle = this.getAttribute('y-axis-title') || '';
+    const curve = this.getAttribute('curve') || 'smooth';
+    const lineWidth = parseInt(this.getAttribute('line-width'), 10) || 2;
+    const markerSize = this.markerSize;
+    const sparkline = this.getAttribute('sparkline') === 'true';
+
+    let finalShowDataLabels = showDataLabels;
+    const isRealtime = this.getAttribute('realtime') === 'true';
+    if (isRealtime) finalShowDataLabels = false;
+
+    const legendOptions = {
+      show: showLegend,
+      position: legendPosition,
+      horizontalAlign: 'center',
+      verticalAlign: legendPosition === 'top' ? 'top' : 'bottom',
+      floating: false,
+      offsetX: 0,
+      offsetY: 0,
+      labels: { colors: '#333', useSeriesColors: false },
+      formatter: function (seriesName, opts) { return seriesName || 'Series'; }
+    }
+
+    const subtitleOptions = {
+        text: subtitle,
+        align: 'left',
+        style: {
+          fontSize: subtitleFontSize,
+          color: '#333'
+        }
+      }
+
+    const titleOptions = {
+        text: title,
+        align: 'left',
+        style: {
+          fontSize: titleFontSize,
+          color: '#333'
+        }
+      }
 
     const baseOptions = {
       chart: {
-        height: 350,                    // Standard height from examples
-        toolbar: { show: true },        // Show toolbar by default, can be disabled via attribute
+        toolbar: { show: showToolbar },
+        height: parseInt(this.getAttribute('height')) || 350,
         animations: { enabled: true },  // Smooth UX
         fontFamily: 'inherit',          // Consistent with page fonts
-        zoom: { enabled: false }        // Disabled by default
+        zoom: { enabled: false },       // Disabled by default
+        sparkline: { enabled: sparkline }
       },
+      title: titleOptions,
+      subtitle: subtitleOptions,
+      legend: legendOptions,
       tooltip: {
-        enabled: true,
+        enabled: tooltipEnabled,
         shared: true,
         followCursor: true,
         intersect: false,
@@ -400,15 +614,17 @@ class SithasoApex extends HTMLElement {
           show: true,
         }
       },
-      // By default disable x-axis label tooltips to avoid hover popups on axis labels
-      xaxis: {
-        tooltip: { enabled: false }
-      },
-      yaxis: {
-        tooltip: { enabled: false }
-      },
       dataLabels: {
-        enabled: false  // Most examples disable data labels by default
+        enabled: showDataLabels
+      },
+      stroke: {
+        curve: curve,
+        width: lineWidth
+      },
+      markers: {
+        size: markerSize,
+        strokeColors: '#fff',
+        strokeWidth: 2
       },
       responsive: [{
         breakpoint: 480,
@@ -425,22 +641,68 @@ class SithasoApex extends HTMLElement {
       }]
     };
 
+    const xAxisOffsetY = this.getAttribute('x-axis-offsety');
+    baseOptions.xaxis = {
+      tooltip: { enabled: false },
+      labels: { show: true },
+      position: 'bottom',
+      title: {
+        text: xAxisTitle,
+        style: {
+          fontSize: '14px',
+          color: '#333'
+        },
+        offsetY: xAxisOffsetY ? parseInt(xAxisOffsetY) : 2
+      }
+    };
+    
+    baseOptions.yaxis = {
+      tooltip: { enabled: false },
+      labels: { show: true },
+      title: {
+        text: yAxisTitle,
+        style: {
+          fontSize: '14px',
+          color: '#333'
+        }
+      }
+    };
+    
     // Add grid settings for all charts
     baseOptions.grid = {
-      show: true,
+      show: gridShow,
       borderColor: '#e7e7e7',
       strokeDashArray: 3,
       xaxis: { lines: { show: true } },
       yaxis: { lines: { show: true } },
       padding: {
-        top: 10, right: 20, bottom: 5, left: 10
+        top: 10, right: 20, bottom: 10, left: 10
       }
     };
 
+    if (this.getAttribute('realtime') === 'true') {
+      baseOptions.chart.animations = { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } };
+      baseOptions.chart.zoom.enabled = false ;
+      baseOptions.markers.size = 0;
+      baseOptions.dataLabels.enabled = finalShowDataLabels;
+    }
+
+    // Apply gradient fill if gradient attribute is true
+    if (this.getAttribute('gradient') !== 'false') {
+      baseOptions.fill = {
+        type: 'gradient'
+      };
+    }
     return baseOptions;
   }
 
   // Setter to update chart options dynamically
+  /**
+   * Merge and persist options provided via the `.options` setter. The
+   * provided object will be deep-merged with the currently stored set and
+   * serialized into the `options` attribute so it is reflected on the DOM.
+   * @param {object} newOptions - Partial options to merge
+   */
   set options(newOptions) {
     this._options = { ...this._options, ...newOptions };
     if (this.chart) {
@@ -449,6 +711,12 @@ class SithasoApex extends HTMLElement {
   }
 
   // Getter to retrieve current options
+  /**
+   * Accessor to retrieve parsed `options` attribute as an object. When no
+   * attribute is present, it returns an empty object. If invalid JSON is
+   * found, a warning is printed and `{}` is returned.
+   * @returns {object} Parsed options object
+   */
   get options() {
     const attr = this.getAttribute('options');
     if (attr) {
@@ -461,6 +729,35 @@ class SithasoApex extends HTMLElement {
   get markerSize() {
     const value = this.getAttribute('marker-size');
     return value ? parseInt(value, 10) : 6;
+  }
+
+  // Getter/setter for grid-show attribute (boolean string 'true' or removed)
+  get gridShow() {
+    const v = this.getAttribute('grid-show');
+    return v === null ? null : (v === 'true');
+  }
+  set gridShow(value) {
+    if (value === true || value === 'true') this.setAttribute('grid-show', 'true');
+    else this.setAttribute('grid-show', 'false');
+  }
+
+  // Getter/setter for tooltip-enabled attribute (boolean string 'true' or removed)
+  get tooltipEnabled() {
+    const v = this.getAttribute('tooltip-enabled');
+    return v === null ? null : (v === 'true');
+  }
+  set tooltipEnabled(value) {
+    if (value === true || value === 'true') this.setAttribute('tooltip-enabled', 'true');
+    else this.setAttribute('tooltip-enabled', 'false');
+  }
+
+  // Getter / setter for 'sparkline' attribute — boolean value interpreted as string 'true' or removed
+  get sparkline() {
+    return this.getAttribute('sparkline') === 'true';
+  }
+  set sparkline(value) {
+    if (value === true || value === 'true') this.setAttribute('sparkline', 'true');
+    else this.removeAttribute('sparkline');
   }
 
   // Getter for optional `column-width` attribute. If not set, component
@@ -524,6 +821,21 @@ class SithasoApex extends HTMLElement {
 
   get title() { return this.getAttribute('title'); }
   set title(value) { this.setAttribute('title', value); }
+
+  // Subtitle attribute: used as chart.subtitle.text
+  get subtitle() { return this.getAttribute('subtitle'); }
+  set subtitle(value) {
+    if (value === null || value === undefined) this.removeAttribute('subtitle');
+    else this.setAttribute('subtitle', value);
+  }
+
+  // Font size for subtitle; default '12px'
+  get subtitleFontSize() { return this.getAttribute('subtitle-font-size') || '12px'; }
+  set subtitleFontSize(value) { if (value === null || value === undefined) this.removeAttribute('subtitle-font-size'); else this.setAttribute('subtitle-font-size', value); }
+
+  // Font size for title; default '14px'
+  get titleFontSize() { return this.getAttribute('title-font-size') || '14px'; }
+  set titleFontSize(value) { if (value === null || value === undefined) this.removeAttribute('title-font-size'); else this.setAttribute('title-font-size', value); }
 
   // Getter/setter for show-data-labels to normalize the boolean behavior
   get showDataLabels() {
@@ -620,6 +932,14 @@ class SithasoApex extends HTMLElement {
 
   // ===== UTILITY METHODS =====
 
+  /**
+   * Basic validation to determine whether the chart has meaningful data to
+   * be rendered. This is intentionally permissive since dynamic charts may
+   * be initially empty and receive data later.
+   * @private
+   * @param {*} data - The parsed data object/array for the chart
+   * @returns {boolean} True if the data is present and renderable
+   */
   validateChartData(data) {
     if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
       this.showError('No data provided for chart');
@@ -670,6 +990,19 @@ class SithasoApex extends HTMLElement {
     return this.formatGenericSeries(data, 'scatter');
   }
 
+  /**
+   * Convert a wide range of input shapes for series data into the canonical
+   * series array/object structures expected by ApexCharts.
+   * Supports:
+   *  - Array of named series objects [{name, data, color}]
+   *  - Array of values for single series
+   *  - Array of [label, value] tuples (pie/donut style)
+   *  - Object maps where keys are categories and values are data points
+   * @private
+   * @param {*} data - Data input in one of the supported shapes
+   * @param {string} chartType - Chart type to influence formatting rules
+   * @returns {Array|Object} Normalized series data for ApexCharts
+   */
   formatGenericSeries(data, chartType) {
     if (Array.isArray(data)) {
       if (data.length > 0 && typeof data[0] === 'object' && data[0].name) {
@@ -706,15 +1039,15 @@ class SithasoApex extends HTMLElement {
     if (!this.validateChartData(data)) return;
 
     const series = this.formatLineSeries(data);
-    const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
-    const xAxisTitle = this.getAttribute('x-axis-title') || '';
-    const yAxisTitle = this.getAttribute('y-axis-title') || '';
-    const curve = this.getAttribute('curve') || 'smooth';
-    const lineWidth = parseInt(this.getAttribute('line-width')) || 3;
+    //const xAxisTitle = this.getAttribute('x-axis-title') || '';
+    //const yAxisTitle = this.getAttribute('y-axis-title') || '';
+    //const curve = this.getAttribute('curve') || 'smooth';
+    //const lineWidth = parseInt(this.getAttribute('line-width')) || 3;
     const categories = this.getAttribute('categories') || '[]';
 
     // Override data labels for realtime charts
@@ -724,7 +1057,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend,
       position: legendPosition,
       horizontalAlign: 'center',
@@ -739,7 +1072,7 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     // Get base defaults and merge with chart-specific options
     const defaultOptions = {
@@ -747,10 +1080,10 @@ class SithasoApex extends HTMLElement {
       chart: {
         ...this.getBaseDefaultOptions('line').chart,
         type: 'line',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar }
+        /*height: parseInt(this.getAttribute('height')) || 350,
+        toolbar: { show: showToolbar }*/
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: {
@@ -758,11 +1091,11 @@ class SithasoApex extends HTMLElement {
           color: '#333'
         }
       },
-      legend: legendOptions,
+      // legend: legendOptions,
       dataLabels: {
         enabled: finalShowDataLabels
-      },
-      stroke: {
+      },*/
+      /*stroke: {
         curve: curve,
         width: lineWidth
       },
@@ -770,12 +1103,12 @@ class SithasoApex extends HTMLElement {
         size: this.markerSize,
         strokeColors: '#fff',
         strokeWidth: 2
-      },
+      },*/
       ...options
     };
 
     // Apply realtime settings if enabled
-    if (this.getAttribute('realtime') === 'true') {
+    /*if (this.getAttribute('realtime') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
@@ -784,10 +1117,10 @@ class SithasoApex extends HTMLElement {
       defaultOptions.markers = {
         size: 0
       };
-    }
+    }*/
 
     // Apply stacking if requested
-    if (this.getAttribute('stacked') === 'true') {
+    /*if (this.getAttribute('stacked') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         stacked: true
@@ -800,13 +1133,13 @@ class SithasoApex extends HTMLElement {
         bar: {
           ...defaultOptions.plotOptions.bar,
           // prefer 'all' so stacked segments get rounded when requested
-          borderRadiusWhenStacked: 'all'
+          borderRadiusWhenStacked: 'last'
         }
       };
-    }
+    }*/
 
     // Apply axis titles after merging options to ensure they're not overridden
-    if (xAxisTitle) {
+    /*if (xAxisTitle) {
       const xAxisOffsetY = this.getAttribute('x-axis-offsety');
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
@@ -819,7 +1152,7 @@ class SithasoApex extends HTMLElement {
           offsetY: xAxisOffsetY ? parseInt(xAxisOffsetY) : 2
         }
       };
-    }
+    }*/
 
     // Apply x-axis label rotation if specified
     const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
@@ -836,7 +1169,7 @@ class SithasoApex extends HTMLElement {
       };
     }
 
-    if (yAxisTitle) {
+    /*if (yAxisTitle) {
       defaultOptions.yaxis = {
         ...defaultOptions.yaxis,
         title: {
@@ -847,7 +1180,7 @@ class SithasoApex extends HTMLElement {
           }
         }
       };
-    }
+    }*/
 
     // Apply categories if specified
     if (categories) {
@@ -870,11 +1203,11 @@ class SithasoApex extends HTMLElement {
     };
 
     // Apply gradient fill if gradient attribute is true
-    if (this.getAttribute('gradient') !== 'false') {
+    /*if (this.getAttribute('gradient') !== 'false') {
       defaultOptions.fill = {
         type: 'gradient'
       };
-    }
+    }*/
 
     // Ensure bar corner radius default when not provided in options
     try {
@@ -891,6 +1224,8 @@ class SithasoApex extends HTMLElement {
       // ignore
     }
 
+
+  
 
 
       // Ensure categories are attached to xaxis for line charts
@@ -960,14 +1295,14 @@ class SithasoApex extends HTMLElement {
     if (!this.validateChartData(data)) return;
 
     const series = this.formatAreaSeries(data);
-    const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
-    const xAxisTitle = this.getAttribute('x-axis-title') || '';
-    const yAxisTitle = this.getAttribute('y-axis-title') || '';
-    const curve = this.getAttribute('curve') || 'smooth';
+    //const xAxisTitle = this.getAttribute('x-axis-title') || '';
+    //const yAxisTitle = this.getAttribute('y-axis-title') || '';
+    //const curve = this.getAttribute('curve') || 'smooth';
     const categories = this.getAttribute('categories') || '[]';
 
     // Override data labels for realtime charts
@@ -977,7 +1312,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend,
       position: legendPosition,
       horizontalAlign: 'center',
@@ -992,27 +1327,27 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     const defaultOptions = {
       ...this.getBaseDefaultOptions('area'),
       chart: {
         ...this.getBaseDefaultOptions('area').chart,
         type: 'area',
-        height: parseInt(this.getAttribute('height')) || 400,
-        toolbar: { show: showToolbar },
+        //height: parseInt(this.getAttribute('height')) || 400,
+        //toolbar: { show: showToolbar },
         animations: { enabled: true }
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: {
           fontSize: '16px',
           color: '#333'
         }
-      },
+      },*/
       // keep responsive/grid overrides that differ from base
-      responsive: [{
+      /*responsive: [{
         breakpoint: 480,
         options: {
           chart: { height: 250 },
@@ -1024,8 +1359,8 @@ class SithasoApex extends HTMLElement {
             offsetY: 0
           }
         }
-      }],
-      grid: {
+      }],*/
+      /*grid: {
         show: true,
         borderColor: '#e7e7e7',
         strokeDashArray: 3,
@@ -1043,7 +1378,7 @@ class SithasoApex extends HTMLElement {
           top: 10, right: 20, bottom: 10, left: 10
         }
       },
-      legend: legendOptions,
+      //legend: legendOptions,
       dataLabels: {
         enabled: finalShowDataLabels
       },
@@ -1055,12 +1390,20 @@ class SithasoApex extends HTMLElement {
         size: this.markerSize,
         strokeColors: '#fff',
         strokeWidth: 2
-      },
+      },*/
       ...options
     };
 
+    // If `sparkline` attribute is enabled, set the chart.sparkline.enabled flag
+    if (this.sparkline) {
+      try {
+        defaultOptions.chart = defaultOptions.chart || {};
+        defaultOptions.chart.sparkline = { enabled: true };
+      } catch (e) {}
+    }
+
     // Apply realtime settings if enabled
-    if (this.getAttribute('realtime') === 'true') {
+    /*if (this.getAttribute('realtime') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
@@ -1069,7 +1412,7 @@ class SithasoApex extends HTMLElement {
       defaultOptions.markers = {
         size: 0
       };
-    }
+    }*/
 
     
     // Apply stacking if requested
@@ -1079,18 +1422,18 @@ class SithasoApex extends HTMLElement {
         stacked: true
       };
       // prefer 'all' so stacked segments get rounded when requested
-      defaultOptions.plotOptions = {
+      /*defaultOptions.plotOptions = {
         ...defaultOptions.plotOptions,
         bar: {
           ...((defaultOptions.plotOptions && defaultOptions.plotOptions.bar) || {}),
-          borderRadiusWhenStacked: 'all'
+          borderRadiusWhenStacked: 'last'
         }
-      };
+      };*/
     }
 
 
     // Apply axis titles after merging options to ensure they're not overridden
-    if (xAxisTitle) {
+    /*if (xAxisTitle) {
       const xAxisOffsetY = this.getAttribute('x-axis-offsety');
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
@@ -1103,7 +1446,7 @@ class SithasoApex extends HTMLElement {
           offsetY: xAxisOffsetY ? parseInt(xAxisOffsetY) : 2
         }
       };
-    }
+    }*/
 
     // Apply x-axis label rotation if specified
     const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
@@ -1120,7 +1463,7 @@ class SithasoApex extends HTMLElement {
       };
     }
 
-    if (yAxisTitle) {
+    /*if (yAxisTitle) {
       defaultOptions.yaxis = {
         ...defaultOptions.yaxis,
         title: {
@@ -1131,7 +1474,7 @@ class SithasoApex extends HTMLElement {
           }
         }
       };
-    }
+    }*/
 
     // Apply categories if specified
     if (categories) {
@@ -1147,11 +1490,11 @@ class SithasoApex extends HTMLElement {
     }
 
     // Apply gradient fill if gradient attribute is true
-    if (this.getAttribute('gradient') !== 'false') {
+    /*if (this.getAttribute('gradient') !== 'false') {
       defaultOptions.fill = {
         type: 'gradient'
       };
-    }
+    }*/
 
     try {
       try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
@@ -1174,15 +1517,15 @@ class SithasoApex extends HTMLElement {
     if (!this.validateChartData(data)) return;
 
     const series = this.formatBarSeries(data);
-    const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
-    const xAxisTitle = this.getAttribute('x-axis-title') || '';
-    const yAxisTitle = this.getAttribute('y-axis-title') || '';
+    //const xAxisTitle = this.getAttribute('x-axis-title') || '';
+    //const yAxisTitle = this.getAttribute('y-axis-title') || '';
     const barOrientation = this.getAttribute('bar-orientation') || 'vertical'; // Default to vertical for columns
-    const curve = this.getAttribute('curve') || 'smooth';
+    //const curve = this.getAttribute('curve') || 'smooth';
     const categories = this.getAttribute('categories') || '[]';
 
     // Override data labels for realtime charts
@@ -1192,7 +1535,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend,
       position: legendPosition,
       horizontalAlign: 'center',
@@ -1207,7 +1550,7 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     // Base options following vanilla-js bar chart examples
     const defaultOptions = {
@@ -1216,8 +1559,8 @@ class SithasoApex extends HTMLElement {
       chart: {
         ...this.getBaseDefaultOptions('column').chart,
         type: 'bar',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar }
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar }
       },
       plotOptions: {
         bar: {
@@ -1230,7 +1573,7 @@ class SithasoApex extends HTMLElement {
         }
       },
       // Allow explicit orientation of data labels on bar/column charts (applied below to avoid replacement)
-      dataLabels: {
+      /*dataLabels: {
         enabled: finalShowDataLabels
       },
       stroke: {
@@ -1247,7 +1590,7 @@ class SithasoApex extends HTMLElement {
       },
       legend: legendOptions,
       grid: {
-        show: true,
+        show: this.gridShow,
         borderColor: '#e7e7e7',
         strokeDashArray: 3,
         xaxis: { lines: { show: true } },
@@ -1255,18 +1598,18 @@ class SithasoApex extends HTMLElement {
         padding: {
           top: 10, right: 20, bottom: 10, left: 10
         }
-      },
+      },*/
       ...options
     };
 
     // Apply realtime settings if enabled
-    if (this.getAttribute('realtime') === 'true') {
+    /*if (this.getAttribute('realtime') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
         zoom: { enabled: false }
       };
-    }
+    }*/
 
     // Apply stacking if requested
     if (this.getAttribute('stacked') === 'true') {
@@ -1279,17 +1622,15 @@ class SithasoApex extends HTMLElement {
         ...defaultOptions.plotOptions,
         bar: {
           ...((defaultOptions.plotOptions && defaultOptions.plotOptions.bar) || {}),
-          borderRadiusWhenStacked: 'all',
+          borderRadiusWhenStacked: 'last',
           borderRadius: this.borderRadius,           // radius from attribute
-          borderRadiusApplication: 'around', // top & bottom corners
-          endingShape: 'rounded',     // optional, softer look
-          startingShape: 'rounded'    // optional
+          borderRadiusApplication: 'end' // top & bottom corners
         }
       };
     }
 
     // Apply axis titles after merging options to ensure they're not overridden
-    if (xAxisTitle) {
+    /*if (xAxisTitle) {
       const xAxisOffsetY = this.getAttribute('x-axis-offsety');
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
@@ -1302,7 +1643,7 @@ class SithasoApex extends HTMLElement {
           offsetY: xAxisOffsetY ? parseInt(xAxisOffsetY) : 2
         }
       };
-    }
+    }*/
 
     // Apply x-axis label rotation if specified
     const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
@@ -1319,7 +1660,7 @@ class SithasoApex extends HTMLElement {
       };
     }
 
-    if (yAxisTitle) {
+    /*if (yAxisTitle) {
       defaultOptions.yaxis = {
         ...defaultOptions.yaxis,
         title: {
@@ -1330,7 +1671,7 @@ class SithasoApex extends HTMLElement {
           }
         }
       };
-    }
+    }*/
 
     // Apply categories if specified
     if (categories) {
@@ -1353,11 +1694,11 @@ class SithasoApex extends HTMLElement {
     }
 
     // Apply gradient fill if gradient attribute is true
-    if (this.getAttribute('gradient') !== 'false') {
+    /*if (this.getAttribute('gradient') !== 'false') {
       defaultOptions.fill = {
         type: 'gradient'
       };
-    }
+    }*/
 
     // If series include per-series colors, copy them into options.colors
     // unless the user explicitly provided options.colors.
@@ -1412,10 +1753,10 @@ class SithasoApex extends HTMLElement {
     if (!this.validateChartData(data)) return;
 
     const series = this.formatBarSeries(data);
-    const showLegend = this.getAttribute('show-legend') === 'true' || (this.getAttribute('show-legend') !== 'false' && series.length > 1);
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = this.getAttribute('show-legend') === 'true' || (this.getAttribute('show-legend') !== 'false' && series.length > 1);
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
     const xAxisTitle = this.getAttribute('x-axis-title') || '';
     const yAxisTitle = this.getAttribute('y-axis-title') || '';
@@ -1429,7 +1770,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend,
       position: legendPosition,
       horizontalAlign: 'center',
@@ -1444,7 +1785,7 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     // Base options following the provided horizontal bar chart example
     const defaultOptions = {
@@ -1453,8 +1794,8 @@ class SithasoApex extends HTMLElement {
       chart: {
         ...this.getBaseDefaultOptions('bar').chart,
         type: 'bar',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar }
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar }
       },
       plotOptions: {
         bar: {
@@ -1462,8 +1803,6 @@ class SithasoApex extends HTMLElement {
           borderRadiusApplication: 'around',
           horizontal: true,
           borderRadiusWhenStacked: 'all',
-          startingShape: 'rounded',
-          endingShape: 'rounded'
         }
       },
       dataLabels: {
@@ -1481,7 +1820,7 @@ class SithasoApex extends HTMLElement {
           enabled: false
         }
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: {
@@ -1489,7 +1828,7 @@ class SithasoApex extends HTMLElement {
           color: '#333'
         }
       },
-      legend: legendOptions,
+      legend: legendOptions,*/
       xaxis: (() => {
         const xAxisOffsetY = this.getAttribute('x-axis-offsety');
         const xAxisLabelRotate = this.getAttribute('x-axis-label-rotate');
@@ -1534,8 +1873,8 @@ class SithasoApex extends HTMLElement {
           show: true
         }
       },
-      grid: {
-        show: true,
+      /*grid: {
+        show: this.gridShow,
         borderColor: '#e7e7e7',
         strokeDashArray: 3,
         xaxis: { lines: { show: true } },
@@ -1543,25 +1882,25 @@ class SithasoApex extends HTMLElement {
         padding: {
           top: 10, right: 20, bottom: 10, left: 10
         }
-      },
+      },*/
       ...options
     };
 
     // Apply realtime settings if enabled
-    if (this.getAttribute('realtime') === 'true') {
+    /*if (this.getAttribute('realtime') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
         zoom: { enabled: false }
       };
-    }
+    }*/
 
     // Apply gradient fill if gradient attribute is true
-    if (this.getAttribute('gradient') !== 'false') {
+    /*if (this.getAttribute('gradient') !== 'false') {
       defaultOptions.fill = {
         type: 'gradient'
       };
-    }
+    }*/
 
     
     // Ensure bar corner radius default when not provided in options
@@ -1604,11 +1943,9 @@ class SithasoApex extends HTMLElement {
         ...defaultOptions.plotOptions,
         bar: {
           ...((defaultOptions.plotOptions && defaultOptions.plotOptions.bar) || {}),
-          borderRadiusWhenStacked: 'all',
+          borderRadiusWhenStacked: 'last',
           borderRadius: this.borderRadius,
-          borderRadiusApplication: 'around',
-          startingShape: 'rounded',
-          endingShape: 'rounded'
+          borderRadiusApplication: 'end',
         }
       };
     }
@@ -1660,10 +1997,10 @@ class SithasoApex extends HTMLElement {
     if (!this.validateChartData(data)) return;
 
     const series = this.formatPieSeries(data);
-    const showLegend = this.getAttribute('show-legend') !== 'false';
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = this.getAttribute('show-legend') !== 'false';
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
 
     // Override data labels for realtime charts
@@ -1673,7 +2010,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend,
       position: legendPosition,
       horizontalAlign: 'center',
@@ -1688,7 +2025,7 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     // Get base defaults and merge with chart-specific options
     const defaultOptions = {
@@ -1696,10 +2033,10 @@ class SithasoApex extends HTMLElement {
       chart: {
         ...this.getBaseDefaultOptions('pie').chart,
         type: 'pie',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar }
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar }
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: {
@@ -1715,18 +2052,18 @@ class SithasoApex extends HTMLElement {
           fontSize: '12px',
           colors: ['#fff']
         }
-      },
+      },*/
       ...options
     };
 
     // Apply realtime settings if enabled
-    if (this.getAttribute('realtime') === 'true') {
+    /*if (this.getAttribute('realtime') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
         zoom: { enabled: false }
       };
-    }
+    }*/
 
     // Handle labels and colors for pie charts
     if (Array.isArray(data) && data.length > 0) {
@@ -1743,11 +2080,11 @@ class SithasoApex extends HTMLElement {
     }
 
     // Apply gradient fill if gradient attribute is true
-    if (this.getAttribute('gradient') !== 'false') {
+    /*if (this.getAttribute('gradient') !== 'false') {
       defaultOptions.fill = {
         type: 'gradient'
       };
-    }
+    }*/
 
     try {
       try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
@@ -1770,10 +2107,10 @@ class SithasoApex extends HTMLElement {
     if (!this.validateChartData(data)) return;
 
     const series = this.formatDonutSeries(data);
-    const showLegend = this.getAttribute('show-legend') !== 'false';
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = this.getAttribute('show-legend') !== 'false';
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
     const donutShowTotal = this.getAttribute('donut-show-total') !== 'false';
 
@@ -1784,7 +2121,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend,
       position: legendPosition,
       horizontalAlign: 'center',
@@ -1799,7 +2136,7 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     // Get base defaults and merge with chart-specific options
     const defaultOptions = {
@@ -1807,10 +2144,10 @@ class SithasoApex extends HTMLElement {
       chart: {
         ...this.getBaseDefaultOptions('donut').chart,
         type: 'donut',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar }
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar }
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: {
@@ -1826,7 +2163,7 @@ class SithasoApex extends HTMLElement {
           fontSize: '12px',
           colors: ['#fff']
         }
-      },
+      },*/
       plotOptions: {
         pie: {
           donut: {
@@ -1843,13 +2180,13 @@ class SithasoApex extends HTMLElement {
     };
 
     // Apply realtime settings if enabled
-    if (this.getAttribute('realtime') === 'true') {
+    /*if (this.getAttribute('realtime') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
         zoom: { enabled: false }
       };
-    }
+    }*/
 
     // Handle labels and colors for donut charts
     if (Array.isArray(data) && data.length > 0) {
@@ -1866,11 +2203,11 @@ class SithasoApex extends HTMLElement {
     }
 
     // Apply gradient fill if gradient attribute is true
-    if (this.getAttribute('gradient') !== 'false') {
+    /*if (this.getAttribute('gradient') !== 'false') {
       defaultOptions.fill = {
         type: 'gradient'
       };
-    }
+    }*/
 
     try {
       try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
@@ -1894,10 +2231,10 @@ class SithasoApex extends HTMLElement {
 
     const series = this.formatRadialBarSeries(data);
     // Default radialBar legend hidden; only show when `show-legend="true"` is set
-    const showLegend = this.getAttribute('show-legend') === 'true';
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = this.getAttribute('show-legend') === 'true';
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
     const hollowSize = this.getAttribute('hollow-size') || '50%';
     const dashedRadial = this.getAttribute('dashed-radial') === 'true';
@@ -1910,7 +2247,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend && legendPosition !== 'hidden',
       position: legendPosition,
       horizontalAlign: 'center',
@@ -1925,7 +2262,7 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     // Get base defaults and merge with chart-specific options
     const defaultOptions = {
@@ -1933,10 +2270,10 @@ class SithasoApex extends HTMLElement {
       chart: {
         ...this.getBaseDefaultOptions('radialBar').chart,
         type: 'radialBar',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar }
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar }
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: {
@@ -1945,7 +2282,10 @@ class SithasoApex extends HTMLElement {
           color: '#333'
         }
       },
-      legend: legendOptions,
+      legend: legendOptions,*/
+      stroke: {
+        lineCap: 'round'
+      },
       plotOptions: {
         radialBar: {
           hollow: {
@@ -1960,7 +2300,7 @@ class SithasoApex extends HTMLElement {
           barLabels: {
             enabled: this.barLabels === true,
             useSeriesColors: true,
-            offsetX: -8,
+            offsetX: -6,
             fontSize: '14px',
             formatter: function(seriesName, opts) {
               return seriesName + ":  " + (opts && opts.w && opts.w.globals && opts.w.globals.series ? opts.w.globals.series[opts.seriesIndex] : '');
@@ -1987,13 +2327,13 @@ class SithasoApex extends HTMLElement {
     };
 
     // Apply realtime settings if enabled
-    if (this.getAttribute('realtime') === 'true') {
+    /*if (this.getAttribute('realtime') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
         zoom: { enabled: false }
       };
-    }
+    }*/
 
     // Handle labels and colors for radial bar charts
     if (Array.isArray(data) && data.length > 0) {
@@ -2010,11 +2350,11 @@ class SithasoApex extends HTMLElement {
     }
 
     // Apply gradient fill if gradient attribute is true
-    if (this.getAttribute('gradient') !== 'false') {
+    /*if (this.getAttribute('gradient') !== 'false') {
       defaultOptions.fill = {
         type: 'gradient'
       };
-    }
+    }*/
 
     try {
       try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
@@ -2037,14 +2377,14 @@ class SithasoApex extends HTMLElement {
     if (!this.validateChartData(data)) return;
 
     const series = this.formatScatterSeries(data);
-    const showLegend = this.getAttribute('show-legend') !== 'false';
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = this.getAttribute('show-legend') !== 'false';
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
-    const xAxisTitle = this.getAttribute('x-axis-title') || '';
-    const yAxisTitle = this.getAttribute('y-axis-title') || '';
-    const curve = this.getAttribute('curve') || 'smooth';
+    //const xAxisTitle = this.getAttribute('x-axis-title') || '';
+    //const yAxisTitle = this.getAttribute('y-axis-title') || '';
+    //const curve = this.getAttribute('curve') || 'smooth';
     const categories = this.getAttribute('categories') || '[]';
 
     // Override data labels for realtime charts
@@ -2054,7 +2394,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend !== false, // Explicitly show for scatter plots
       position: legendPosition,
       horizontalAlign: legendPosition === 'right' ? 'left' : 'center',
@@ -2069,7 +2409,7 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     // Get base defaults and merge with chart-specific options
     const defaultOptions = {
@@ -2077,11 +2417,11 @@ class SithasoApex extends HTMLElement {
       chart: {
         ...this.getBaseDefaultOptions('scatter').chart,
         type: 'scatter',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar },
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar },
         zoom: { enabled: true, type: 'xy' } // Scatter charts benefit from zoom
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: {
@@ -2096,12 +2436,12 @@ class SithasoApex extends HTMLElement {
       stroke: {
         curve: curve,
         width: 2
-      },
-      markers: {
+      },*/
+      /*markers: {
         size: this.markerSize,
         strokeColors: '#fff',
         strokeWidth: 2
-      },
+      },*/
       xaxis: {
         tickAmount: 10,
         labels: {
@@ -2117,7 +2457,7 @@ class SithasoApex extends HTMLElement {
     };
 
     // Apply realtime settings if enabled
-    if (this.getAttribute('realtime') === 'true') {
+    /*if (this.getAttribute('realtime') === 'true') {
       defaultOptions.chart = {
         ...defaultOptions.chart,
         animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
@@ -2126,10 +2466,10 @@ class SithasoApex extends HTMLElement {
       defaultOptions.markers = {
         size: 0
       };
-    }
+    }*/
 
     // Apply axis titles after merging options to ensure they're not overridden
-    if (xAxisTitle) {
+    /*if (xAxisTitle) {
       const xAxisOffsetY = this.getAttribute('x-axis-offsety');
       defaultOptions.xaxis = {
         ...defaultOptions.xaxis,
@@ -2142,7 +2482,7 @@ class SithasoApex extends HTMLElement {
           offsetY: xAxisOffsetY ? parseInt(xAxisOffsetY) : 2
         }
       };
-    }
+    }*/
 
     // Apply x-axis label rotation if specified
     
@@ -2160,7 +2500,7 @@ class SithasoApex extends HTMLElement {
       };
     }
 
-    if (yAxisTitle) {
+    /*if (yAxisTitle) {
       defaultOptions.yaxis = {
         ...defaultOptions.yaxis,
         title: {
@@ -2171,7 +2511,7 @@ class SithasoApex extends HTMLElement {
           }
         }
       };
-    }
+    }*/
 
     // Apply categories if specified
     if (categories) {
@@ -2187,11 +2527,11 @@ class SithasoApex extends HTMLElement {
     }
 
     // Apply gradient fill if gradient attribute is true
-    if (this.getAttribute('gradient') !== 'false') {
+    /*if (this.getAttribute('gradient') !== 'false') {
       defaultOptions.fill = {
         type: 'gradient'
       };
-    }
+    }*/
 
     try {
       try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
@@ -2239,10 +2579,10 @@ class SithasoApex extends HTMLElement {
     }
 
     const series = radarSeries;
-    const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
     const categories = radarCategories || [];
 
@@ -2252,7 +2592,7 @@ class SithasoApex extends HTMLElement {
       finalShowDataLabels = false;
     }
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend,
       position: legendPosition,
       horizontalAlign: 'center',
@@ -2267,7 +2607,7 @@ class SithasoApex extends HTMLElement {
       formatter: function(seriesName, opts) {
         return seriesName || 'Series';
       }
-    };
+    };*/
 
     // Base defaults for radar (use base defaults and merge)
     let defaultOptions = {
@@ -2275,14 +2615,14 @@ class SithasoApex extends HTMLElement {
       chart: {
         ...this.getBaseDefaultOptions('radar').chart,
         type: 'radar',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar }
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar }
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: { fontSize: '16px', color: '#333' }
-      },
+      },*/
       dropShadow: {
         enabled: true,
         blur: 1,
@@ -2292,12 +2632,20 @@ class SithasoApex extends HTMLElement {
       fill: {
         opacity: 0.1
       },
-      legend: legendOptions,
-      dataLabels: { enabled: finalShowDataLabels },
-      markers: { size: this.markerSize },
+      //legend: legendOptions,
+      //dataLabels: { enabled: finalShowDataLabels },
+      //markers: { size: this.markerSize },
       xaxis: { categories: categories },
       yaxis: { stepSize: 20 }
     };
+
+    /*if (this.gridShow === null) {
+      defaultOptions.grid = defaultOptions.grid || {};
+      defaultOptions.grid.show = false;
+    } else {
+      defaultOptions.grid = defaultOptions.grid || {};
+      defaultOptions.grid.show = this.gridShow;
+    }*/
 
     // Deep-merge user `options` into defaults so nested objects are preserved
     defaultOptions = this.deepMerge(defaultOptions, options || {});
@@ -2413,13 +2761,13 @@ class SithasoApex extends HTMLElement {
       }
     }
 
-    const showLegend = this.getAttribute('show-legend') !== 'false';
-    const legendPosition = this.getAttribute('legend-position') || 'bottom';
-    const showToolbar = this.getAttribute('show-toolbar') !== 'false';
-    const title = this.getAttribute('title') || '';
+    //const showLegend = this.getAttribute('show-legend') !== 'false';
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
     const showDataLabels = this.showDataLabels;
 
-    const legendOptions = {
+    /*const legendOptions = {
       show: showLegend,
       position: legendPosition,
       horizontalAlign: 'center',
@@ -2427,28 +2775,28 @@ class SithasoApex extends HTMLElement {
       floating: false,
       offsetX: 0,
       offsetY: 0
-    };
+    };*/
 
     let defaultOptions = {
       ...this.getBaseDefaultOptions('polarArea'),
       chart: {
         ...this.getBaseDefaultOptions('polarArea').chart,
         type: 'polarArea',
-        height: parseInt(this.getAttribute('height')) || 350,
-        toolbar: { show: showToolbar }
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar }
       },
-      title: {
+      /*title: {
         text: title,
         align: 'left',
         style: {
           fontSize: '16px',
           color: '#333'
         }
-      },
+      },*/
       series: series,
       labels: labels,
-      legend: legendOptions,
-      dataLabels: { enabled: !!showDataLabels },
+      //legend: legendOptions,
+      //dataLabels: { enabled: !!showDataLabels },
       plotOptions: {
         polarArea: {
           rings: { strokeWidth: 1 }
@@ -2493,21 +2841,98 @@ class SithasoApex extends HTMLElement {
     }
   }
 
+  createRangeAreaChart(container) {
+    // Range area is an area variant with [low, high] y values per point
+    const data = this.parseData(this.getAttribute('data'));
+    const options = this.parseOptions(this.getAttribute('options'));
+
+    if (!this.validateChartData(data)) return;
+
+    const series = this.formatAreaSeries(data);
+    //const showLegend = (this.getAttribute('show-legend') !== 'false') && (series.length > 1);
+    //const legendPosition = this.getAttribute('legend-position') || 'bottom';
+    //const showToolbar = this.getAttribute('show-toolbar') !== 'false';
+    //const title = this.getAttribute('title') || '';
+    const showDataLabels = this.showDataLabels;
+    //const xAxisTitle = this.getAttribute('x-axis-title') || '';
+    //const yAxisTitle = this.getAttribute('y-axis-title') || '';
+    //const curve = this.getAttribute('curve') || 'smooth';
+    const categories = this.getAttribute('categories') || '[]';
+
+    // Override data labels for realtime charts
+    let finalShowDataLabels = showDataLabels;
+    const isRealtime = this.getAttribute('realtime') === 'true';
+    if (isRealtime) finalShowDataLabels = false;
+
+    /*const legendOptions = {
+      show: showLegend,
+      position: legendPosition,
+      horizontalAlign: 'center',
+      verticalAlign: legendPosition === 'top' ? 'top' : 'bottom',
+      floating: false,
+      offsetX: 0,
+      offsetY: 0,
+      labels: { colors: '#333', useSeriesColors: false },
+      formatter: function (seriesName, opts) { return seriesName || 'Series'; }
+    };*/
+
+    const defaultOptions = {
+      ...this.getBaseDefaultOptions('area'),
+      chart: {
+        ...this.getBaseDefaultOptions('area').chart,
+        type: 'rangeArea',
+        //height: parseInt(this.getAttribute('height')) || 350,
+        //toolbar: { show: showToolbar }
+      },
+      //title: { text: title, align: 'left', style: { fontSize: '16px', color: '#333' } },
+      //legend: legendOptions,
+      //dataLabels: { enabled: finalShowDataLabels },
+      //stroke: { curve: curve, width: parseInt(this.getAttribute('line-width')) || 2 },
+      //markers: { size: this.markerSize, strokeColors: '#fff', strokeWidth: 2 },
+      ...options
+    };
+
+    // Apply axis titles
+    //if (xAxisTitle) defaultOptions.xaxis = { ...(defaultOptions.xaxis || {}), title: { text: xAxisTitle, style: { fontSize: '14px', color: '#333' }, offsetY: parseInt(this.getAttribute('x-axis-offsety')) || 2 } };
+    //if (yAxisTitle) defaultOptions.yaxis = { ...(defaultOptions.yaxis || {}), title: { text: yAxisTitle, style: { fontSize: '14px', color: '#333' } } };
+
+    // Apply categories if provided
+    if (categories) {
+      try {
+        const categoriesArray = JSON.parse(categories);
+        defaultOptions.xaxis = { ...(defaultOptions.xaxis || {}), categories: categoriesArray };
+      } catch (error) { console.warn('Invalid categories format:', categories); }
+    }
+
+    // Apply gradient if requested
+    //if (this.getAttribute('gradient') !== 'false') defaultOptions.fill = { type: 'gradient' };
+
+    try {
+      try { this._applyAxisOutputFormats(defaultOptions); } catch (e) {}
+      this.chart = new ApexCharts(container, { ...defaultOptions, series: series });
+      this.chart.render();
+      this._options = defaultOptions;
+    } catch (error) {
+      console.error('Error creating range area chart:', error);
+      this.showError('Error creating range area chart: ' + error.message);
+    }
+  }
+
   
   updateChart() {
+    // Recreate the chart based on current attributes. If a chart exists,
+    // destroy it first; otherwise, just render a new instance.
     if (this.chart) {
-      // For updates, we need to recreate the chart with new options
-      // since individual attributes like legend settings need to be reapplied
       try {
         this.chart.destroy();
       } catch (error) {
         console.warn('Error destroying chart during update:', error);
       }
       this.chart = null;
-      // Clear the container and recreate
-      this.innerHTML = '';
-      this.render();
     }
+    // Clear any existing DOM nodes before rendering
+    try { this.innerHTML = ''; } catch (e) { /* ignore */ }
+    this.render();
   }
 
   parseData(dataAttr) {
@@ -2596,11 +3021,27 @@ class SithasoApex extends HTMLElement {
   }
 
   // Utility: check plain object
+  /**
+   * Test whether a value is a plain JavaScript object (i.e., `Object`
+   * constructor). Used by the deep merging helpers.
+   * @private
+   * @param {*} obj - Value to check
+   * @returns {boolean} true if obj is a plain object
+   */
   isPlainObject(obj) {
     return obj && typeof obj === 'object' && obj.constructor === Object;
   }
 
   // Deep merge source into target (returns a new object). Arrays are replaced.
+  /**
+   * Recursively merge `source` into `target`, preserving nested objects and
+   * replacing arrays. Designed to keep defaults while allowing users to
+   * provide partial nested `options` objects without clobbering defaults.
+   * @private
+   * @param {*} target - The base object to merge into
+   * @param {*} source - The source object whose properties will be merged
+   * @returns {*} New merged object
+   */
   deepMerge(target, source) {
     if (!source) return target;
     if (Array.isArray(source)) return source.slice();
@@ -2617,6 +3058,14 @@ class SithasoApex extends HTMLElement {
     return out;
   }
 
+  /**
+   * Format a single series into ApexCharts-acceptable shapes. This method
+   * supports arrays of numbers, arrays of [x,y] tuples, and object maps.
+   * @private
+   * @param {*} data - Single series data
+   * @param {string} chartType - Chart type for contextual formatting
+   * @returns {Array|Object} The normalized single-series data
+   */
   formatSingleSeries(data, chartType) {
     if (Array.isArray(data)) {
       if (chartType === 'pie' || chartType === 'donut' || chartType === 'radialBar') {
@@ -2646,22 +3095,78 @@ class SithasoApex extends HTMLElement {
   }
 
   // Public API methods
+  /**
+   * Update the component's `data` attribute and trigger a chart update.
+   * Use this method to programmatically supply new data (objects or arrays)
+   * to the component. The value will be serialized to JSON and set as the
+   * `data` attribute, which then triggers the component's update lifecycle.
+   * @param {*} newData - New chart data (object, array or series array)
+   */
   updateData(newData) {
     // Update via attribute, which triggers attributeChangedCallback
     // This ensures consistent behavior whether updating via API or DOM
     this.setAttribute('data', JSON.stringify(newData));
   }
 
+  /**
+   * Merge new options into the current options object and set the `options`
+   * attribute to preserve the new configuration. This will update the
+   * underlying chart via Apex's `updateOptions` on the next scheduled run.
+   * @param {object} newOptions - Options to merge into existing options
+   */
   updateOptions(newOptions) {
     const currentOptions = this.parseOptions(this.getAttribute('options'));
-    const mergedOptions = { ...currentOptions, ...newOptions };
+    const mergedOptions = this.deepMerge(currentOptions, newOptions);
     this.setAttribute('options', JSON.stringify(mergedOptions));
   }
 
+  /**
+   * Returns the underlying ApexCharts instance created by this component,
+   * or `null` if no chart has been initialized.
+   * @returns {ApexCharts|null}
+   */
   getChart() {
     return this.chart;
   }
 
+  // Internal helper: write attribute without triggering attributeChangedCallback
+  /**
+   * Mutate an attribute on the element without triggering the
+   * attributeChangedCallback. This is used internally to reflect runtime
+   * state as attributes when performing `refresh()`.
+   * @private
+   * @param {string} name - Attribute name
+   * @param {*} value - Value to set (if undefined or null the attribute is removed)
+   */
+  _setAttributeInternal(name, value) {
+    this._internalAttributeMutate = true;
+    try {
+      if (typeof value === 'undefined' || value === null) this.removeAttribute(name);
+      else this.setAttribute(name, value);
+    } finally {
+      this._internalAttributeMutate = false;
+    }
+  }
+
+  /**
+   * Remove an attribute without invoking attribute change handlers.
+   * @private
+   * @param {string} name - Attribute to remove
+   */
+  _removeAttributeInternal(name) {
+    this._internalAttributeMutate = true;
+    try {
+      this.removeAttribute(name);
+    } finally {
+      this._internalAttributeMutate = false;
+    }
+  }
+
+  /**
+   * Toggle the `loading` attribute on the element to display or hide the
+   * built-in loading indicator.
+   * @param {boolean|string} loading - truthy to show loading, falsy to hide
+   */
   setLoading(loading) {
     if (loading) {
       this.setAttribute('loading', '');
@@ -2671,73 +3176,220 @@ class SithasoApex extends HTMLElement {
   }
 
   // Event handling
+  /**
+   * Override `addEventListener` only to expose the same API as DOM nodes.
+   * This allows code calling `chart.addEventListener('click', handler)` to
+   * attach events normally to the custom element.
+   * @param {string} type - Event type
+   * @param {Function} listener - Handler function
+   * @param {object|boolean} [options] - Optional event listener options
+   */
   addEventListener(type, listener, options) {
     super.addEventListener(type, listener, options);
   }
 
-  // Data export
-  exportData() {
+  /**
+   * Clear the chart's data and runtime memory.
+   * Destroy the ApexCharts instance and remove `data`, `categories` and
+   * `colors` attributes. The internal state is cleared; call `refresh()` to
+   * rebuild if needed.
+   */
+  clear() {
     if (this.chart) {
-      return this.chart.data;
-    }
-    return null;
-  }
+      // Destroy the current chart entirely
+      try {
+        this.chart.destroy();
+      } catch (e) {
+        // ignore destroy errors
+      }
+      this.chart = null;
 
-  // Clear chart data and reset axes
-  clearData() {
-    if (this.chart) {
-      // Clear the series data
-      this.chart.updateSeries([]);
-
-      // Reset x-axis and y-axis to default state
-      const defaultAxes = {
-        xaxis: {
-          tooltip: { enabled: false },
-          labels: {}
-        },
-        yaxis: {
-          tooltip: { enabled: false },
-          labels: {}
-        }
-      };
-
-      this.chart.updateOptions(defaultAxes);
+      // Removing the chart instance means we need to rebuild it below via `render()`.
     }
 
-    // Clear internal data and reset attributes
+    // Clear internal runtime memory and attributes so the chart is empty
     this._data = null;
-    this._seriesMap.clear(); // Clear stored series
-    this._categories = []; // Clear stored categories
-    this._colors = []; // Clear stored colors
-    this.removeAttribute('data');
-    this.removeAttribute('categories');
+    try { this._seriesMap.clear(); } catch (e) {}
+    this._categories = [];
+    this._colors = [];
+    try { this._removeAttributeInternal('data'); } catch (e) {}
+    try { this._removeAttributeInternal('categories'); } catch (e) {}
+    try { this._removeAttributeInternal('colors'); } catch (e) {}
+
+    // Rebuild the chart UI from attributes/ defaults by recreating the element's contents
+    try {
+      this.innerHTML = ''; // ensure container removed, leave chart destroyed and DOM empty
+      // Do not re-render the chart or call refresh() automatically; caller must opt-in to rebuild.
+    } catch (e) {
+      console.warn('Error clearing chart during clear():', e);
+    }
   }
 
+  /**
+   * Add or replace a series in the runtime series store. This does not
+   * automatically refresh the chart; call `refresh()` after multiple
+   * modifications if you want to re-render.
+   * @param {string} seriesName - Human-friendly series label
+   * @param {string|null} seriesColor - Optional color for this series
+   * @param {Array|number|object} values - Series data payload
+   */
   // Add series to memory for runtime management
   addSeries(seriesName, seriesColor, values) {
+    const existing = this._seriesMap.get(seriesName) || {};
     const series = {
       name: seriesName,
       data: values,
-      color: seriesColor
+      color: seriesColor || existing.color || null,
+      dashed: typeof existing.dashed !== 'undefined' ? existing.dashed : false
     };
     this._seriesMap.set(seriesName, series);
   }
 
+  // Add a single point (XY or numeric) to a given series; does not auto-refresh
+  // Usage examples:
+  //  - AddSeriesPoint('Series 1', [x,y])
+  //  - AddSeriesPoint('Series 1', {x: x, y: y})
+  //  - AddSeriesPoint('Series 1', y)  // numeric append for array series
+  /**
+   * Add a single point to a named series without refreshing rendering.
+   * Supports values like `42`, `[x,y]`, or `{x: x, y: y}`.
+   * @param {string} seriesName - Target series name
+   * @param {*} a - Value, tuple or object representing the point
+   * @param {*} [b] - Optional y coordinate if `a` is x and `b` is y
+   */
+  addSeriesPoint(seriesName, a, b) {
+    // Normalize the incoming point to a proper data element
+    let point = null;
+    if (typeof a === 'object' && a !== null) {
+      // array [x,y] or object {x,y}
+      if (Array.isArray(a) && a.length >= 2) point = { x: a[0], y: a[1] };
+      else if (typeof a.x !== 'undefined' || typeof a.y !== 'undefined') point = { x: a.x, y: a.y };
+      else point = a;
+    } else if (typeof a === 'number' && typeof b === 'number') {
+      point = { x: a, y: b };
+    } else {
+      // assume single numeric value (pie/donut or array datapoint)
+      point = a;
+    }
+
+    // Ensure series exists; if not, create with initial empty array
+    if (!this._seriesMap.has(seriesName)) {
+      const s = { name: seriesName, data: [], color: null };
+      this._seriesMap.set(seriesName, s);
+    }
+
+    const series = this._seriesMap.get(seriesName);
+    // If series.data isn't an array, convert it into an array
+    if (!Array.isArray(series.data)) {
+      // If it was a single scalar value, convert into [value]
+      if (typeof series.data !== 'undefined' && series.data !== null) series.data = [series.data];
+      else series.data = [];
+    }
+
+    // Push the new point
+    series.data.push(point);
+    this._seriesMap.set(seriesName, series);
+  }
+
+  // Append a numeric value to an existing series (for column/line charts)
+  /**
+   * Append a numeric value to the end of a given series. Creates the
+   * series if it does not already exist.
+   * @param {string} seriesName - Name of series to append to
+   * @param {number} value - Numeric value to append
+   */
+  addSeriesAppendValue(seriesName, value) {
+    if (!this._seriesMap.has(seriesName)) {
+      this._seriesMap.set(seriesName, { name: seriesName, data: [value], color: null, dashed: false });
+      return;
+    }
+    const series = this._seriesMap.get(seriesName);
+    if (!Array.isArray(series.data)) series.data = [series.data];
+    series.data.push(value);
+    this._seriesMap.set(seriesName, series);
+  }
+
+  // Add series with a color
+  /**
+   * Add or update a series entry to store a color for that series.
+   * Use `refresh()` afterwards to apply color values to the chart.
+   * @param {string} seriesName - Name of the series
+   * @param {string} seriesColor - Color CSS string
+   */
+  addSeriesColor(seriesName, seriesColor) {
+    const existing = this._seriesMap.get(seriesName) || {};
+    const series = {
+      name: seriesName,
+      data: existing.data || [],
+      color: seriesColor,
+      dashed: typeof existing.dashed !== 'undefined' ? existing.dashed : false
+    };
+    this._seriesMap.set(seriesName, series);
+  }
+
+  // B4X AddCategory (append a single category and grow series data arrays)
+  /**
+   * Append a category label and ensure all series arrays are padded to match
+   * the new categories length.
+   * @param {string} catName - Name of the category to append
+   */
+  addCategory(catName) {
+    // Append category to our runtime categories
+    this._categories.push(catName);
+    // Ensure all series with array data are expanded to match new category
+    for (const [name, s] of this._seriesMap) {
+      if (!Array.isArray(s.data)) s.data = [s.data || ''];
+      // If series arrays are too short, push placeholder
+      while (s.data.length < this._categories.length) s.data.push('');
+      this._seriesMap.set(name, s);
+    }
+  }
+
+  // B4X AddColor (append a single color to runtime colors)
+  /**
+   * Add a single color to the runtime palette. Use `refresh()` to apply the
+   * runtime palette into `options.colors`.
+   * @param {string} col - Color string (e.g. `#FF4560`)
+   */
+  addColor(col) {
+    if (typeof col !== 'undefined' && col !== null) this._colors.push(col);
+  }
+
   // Add series value to memory (B4X compatible method)
-  AddSeriesValue(SeriesName, value) {
+  /**
+   * Add or replace a series entry with full data payload in runtime memory.
+   * If existing, the series data will be replaced with `value`.
+   * @param {string} SeriesName - Name of the series
+   * @param {Array|number|object} value - New series data
+   */
+  addSeriesValue(SeriesName, value) {
+    const existing = this._seriesMap.get(SeriesName) || {};
     const series = {
       name: SeriesName,
-      data: value
+      data: value,
+      color: existing.color || null,
+      dashed: typeof existing.dashed !== 'undefined' ? existing.dashed : false
     };
     this._seriesMap.set(SeriesName, series);
   }
 
   // Add XY series (B4X compatible method)
-  AddXY(X, y) {
-    this.AddSeriesValue(X, y);
+  /**
+   * Convenience wrapper for the legacy `AddXY` B4X API. Adds a value to the
+   * runtime store for series `X`.
+   * @param {string} X - Series name
+   * @param {*} y - Series data or value
+   */
+  addXY(X, y) {
+    this.addSeriesValue(X, y);
   }
 
   // Set series color (B4X compatible method)
+  /**
+   * Set the series color in runtime memory (B4X compatible wrapper).
+   * @param {string} seriesName - Series name
+   * @param {string} color - Color string
+   */
   SetSeriesColor(seriesName, color) {
     if (this._seriesMap.has(seriesName)) {
       const series = this._seriesMap.get(seriesName);
@@ -2746,8 +3398,34 @@ class SithasoApex extends HTMLElement {
     }
   }
 
+  // Set series dashed flag (B4X compatible method)
+  /**
+   * Set the 'dashed' flag for a series (legacy B4X API).
+   * @param {string} seriesName - Series name
+   * @param {boolean|string} dashed - Boolean or string; `true` flips on dashed styling
+   */
+  SetSeriesDashed(seriesName, dashed) {
+    const dashedFlag = (dashed === true || dashed === 'true');
+    if (!this._seriesMap.has(seriesName)) {
+      // create series entry so runtime dash can be applied even if series missing yet
+      this._seriesMap.set(seriesName, { name: seriesName, data: [], color: null, dashed: dashedFlag });
+      return;
+    }
+    const series = this._seriesMap.get(seriesName);
+    series.dashed = dashedFlag;
+    this._seriesMap.set(seriesName, series);
+  }
+
   // Add series category value matrix (B4X compatible method)
-  AddSeriesCategoryValue(seriesName, catName, value) {
+  /**
+   * Set a single data point for a given series by category name. This
+   * method ensures the series and categories exist then writes the value
+   * at the matching index.
+   * @param {string} seriesName - Target series name
+   * @param {string} catName - Category label to index into
+   * @param {*} value - Value to set at the category position
+   */
+  addSeriesCategoryValue(seriesName, catName, value) {
     let seriesValues = [];
     
     // The series does not exist, create it
@@ -2779,281 +3457,95 @@ class SithasoApex extends HTMLElement {
     }
   }
 
-  // Build options to update during refresh from current attributes
-  buildRefreshOptionsFromAttributes() {
-    const chartType = this.getAttribute('type') || 'line';
-    const options = {};
+  
 
-    // Basic chart options that can be updated (only apply if attribute present)
-    const chartAttrPresent = this.hasAttribute('height') || this.hasAttribute('width') || this.hasAttribute('show-toolbar');
-    if (chartAttrPresent) {
-      options.chart = {};
-      if (this.hasAttribute('height')) options.chart.height = parseInt(this.getAttribute('height')) || 350;
-      if (this.hasAttribute('width')) options.chart.width = this.getAttribute('width') || '100%';
-      if (this.hasAttribute('show-toolbar')) options.chart.toolbar = { show: this.getAttribute('show-toolbar') !== 'false' };
+  // Consolidate runtime state into a payload used by refresh().
+  // Returns an object containing runtimeSeriesObjects, dataAttr, categories, colors
+  // and pie-specific values when chartType is circular.
+  /**
+   * Consolidate runtime memory (series, categories, colors) into a payload
+   * usable by `refresh()` — the structure varies depending on chart type. For
+   * pie/donut style charts it returns a flattened pie array; for others a
+   * runtimeSeriesObjects with name/data/color/dashed is returned.
+   * @private
+   * @param {string} chartType - Optional chart type hint
+   * @returns {object} Consolidated runtime state for the current type
+   */
+  _buildRuntimeState(chartType) {
+    const chartTypeKey = this.mapChartType(chartType || this.getAttribute('type') || 'line');
+
+    if (chartTypeKey === 'pie' || chartTypeKey === 'donut' || chartTypeKey === 'radialBar' || chartTypeKey === 'polarArea') {
+      const runtimeSeriesObjects = Array.from(this._seriesMap.values()).map(series => ({
+        name: series.name,
+        data: Array.isArray(series.data) ? series.data[0] : series.data,
+        color: series.color
+      }));
+      const pieSeries = runtimeSeriesObjects.map(s => s.data || 0);
+      const pieLabels = runtimeSeriesObjects.map(s => s.name);
+      const pieColors = runtimeSeriesObjects.map(s => s.color).filter(Boolean);
+      const dataAttr = runtimeSeriesObjects.map(s => ({ name: s.name, data: s.data, color: s.color }));
+      return { pieSeries, pieLabels, pieColors, dataAttr };
     }
 
-    // Title
-    if (this.hasAttribute('title')) {
-      options.title = {
-        text: this.getAttribute('title') || '',
-        align: 'left',
-        style: {
-          fontSize: '16px',
-          fontWeight: 'bold',
-          color: '#333'
-        }
-      };
-    }
-
-    // Legend (only set if attributes present to avoid overriding defaults)
-    if (this.hasAttribute('show-legend') || this.hasAttribute('legend-position')) {
-      options.legend = {
-        show: this.getAttribute('show-legend') !== 'false',
-        position: this.getAttribute('legend-position') || 'bottom',
-        horizontalAlign: 'center',
-        verticalAlign: this.getAttribute('legend-position') === 'top' ? 'top' : 'bottom',
-        floating: false,
-        offsetX: 0,
-        offsetY: 0,
-        labels: {
-          colors: '#333',
-          useSeriesColors: false
-        }
-      };
-    }
-
-    // Data labels
-    if (this.hasAttribute('show-data-labels')) {
-      options.dataLabels = { enabled: this.showDataLabels };
-    }
-
-    // Theme (ApexCharts expects an object for theme via updateOptions)
-    if (this.hasAttribute('theme')) options.theme = { mode: this.getAttribute('theme') || 'light' };
-
-    // Cartesian chart specific options
-    if (['line', 'area', 'bar', 'column', 'scatter'].includes(chartType)) {
-      if (this.hasAttribute('x-axis-title') || this.hasAttribute('x-axis-offsety') || this.hasAttribute('x-axis-label-rotate') || this.hasAttribute('x-axis-label-rotate-offsety')) {
-        options.xaxis = {};
-        if (this.hasAttribute('x-axis-title')) options.xaxis.title = { text: this.getAttribute('x-axis-title') || '' };
-        if (this.hasAttribute('x-axis-offsety')) options.xaxis.offsetY = parseInt(this.getAttribute('x-axis-offsety')) || 0;
-        if (this.hasAttribute('x-axis-label-rotate') || this.hasAttribute('x-axis-label-rotate-offsety')) {
-          options.xaxis.labels = {};
-          if (this.hasAttribute('x-axis-label-rotate')) options.xaxis.labels.rotate = parseInt(this.getAttribute('x-axis-label-rotate')) || 0;
-          if (this.hasAttribute('x-axis-label-rotate-offsety')) options.xaxis.labels.offsetY = parseInt(this.getAttribute('x-axis-label-rotate-offsety')) || 0;
-        }
-      }
-
-      if (this.hasAttribute('y-axis-title')) {
-        options.yaxis = {};
-        options.yaxis.title = { text: this.getAttribute('y-axis-title') || '' };
-      }
-
-      // Chart type specific options
-      if (chartType === 'line' || chartType === 'area') {
-        if (this.hasAttribute('curve') || this.hasAttribute('line-width')) {
-          options.stroke = {};
-          if (this.hasAttribute('curve')) options.stroke.curve = this.getAttribute('curve') || 'smooth';
-          if (this.hasAttribute('line-width')) options.stroke.width = parseInt(this.getAttribute('line-width')) || 3;
-        }
-
-        if (chartType === 'area' && this.hasAttribute('gradient')) {
-          options.fill = { type: this.getAttribute('gradient') === 'true' ? 'gradient' : 'solid' };
-        }
-      }
-
-      if (chartType === 'bar' || chartType === 'column') {
-        if (this.hasAttribute('bar-orientation') || this.hasAttribute('column-width') || this.hasAttribute('border-radius')) {
-          options.plotOptions = { bar: {} };
-          if (this.hasAttribute('bar-orientation')) options.plotOptions.bar.horizontal = this.getAttribute('bar-orientation') === 'horizontal';
-          if (this.hasAttribute('column-width')) options.plotOptions.bar.columnWidth = this.getAttribute('column-width') || '60%';
-          if (this.hasAttribute('border-radius')) options.plotOptions.bar.borderRadius = parseInt(this.getAttribute('border-radius'));
-        }
-
-        // Data label orientation for bar/column charts: set only when attribute present
-        if (this.hasAttribute('data-label-orientation')) {
-          options.plotOptions = options.plotOptions || {};
-          options.plotOptions.bar = options.plotOptions.bar || {};
-          options.plotOptions.bar.dataLabels = options.plotOptions.bar.dataLabels || {};
-          options.plotOptions.bar.dataLabels.orientation = this.getAttribute('data-label-orientation');
-        }
-        // Data label position for bar/column charts (top/center/bottom)
-        if (this.hasAttribute('data-label-position')) {
-          options.plotOptions = options.plotOptions || {};
-          options.plotOptions.bar = options.plotOptions.bar || {};
-          options.plotOptions.bar.dataLabels = options.plotOptions.bar.dataLabels || {};
-          options.plotOptions.bar.dataLabels.position = this.getAttribute('data-label-position');
-        }
-
-        if (this.getAttribute('stacked') === 'true') {
-          if (!options.chart) options.chart = {};
-          options.chart.stacked = true;
-        }
-      }
-
-      if (chartType === 'scatter' && this.hasAttribute('marker-size')) {
-        options.markers = { size: parseInt(this.getAttribute('marker-size')) || 6 };
-      }
-    }
-
-    // Circular chart specific options
-    if (['pie', 'donut', 'radialBar'].includes(chartType)) {
-      if (this.hasAttribute('start-angle') || this.hasAttribute('end-angle')) {
-        options.plotOptions = { pie: {} };
-        if (this.hasAttribute('start-angle')) options.plotOptions.pie.startAngle = parseInt(this.getAttribute('start-angle')) || 0;
-        if (this.hasAttribute('end-angle')) options.plotOptions.pie.endAngle = parseInt(this.getAttribute('end-angle')) || 360;
-      }
-
-      if (chartType === 'donut') {
-        if (!options.plotOptions) options.plotOptions = {};
-        if (!options.plotOptions.pie) options.plotOptions.pie = {};
-        if (!options.plotOptions.pie.donut) options.plotOptions.pie.donut = {};
-        if (this.hasAttribute('hollow-size')) options.plotOptions.pie.donut.size = this.getAttribute('hollow-size') || '50%';
-        if (this.hasAttribute('donut-show-total')) {
-          options.plotOptions.pie.donut.labels = { show: this.getAttribute('donut-show-total') === 'true', total: { show: true, label: 'Total' } };
-        }
-      }
-
-      if (chartType === 'radialBar') {
-        if (!options.plotOptions) options.plotOptions = {};
-        if (this.hasAttribute('hollow-size') || this.hasAttribute('track-width') || this.hasAttribute('radial-data-labels') || this.hasAttribute('dashed-radial')) {
-          options.plotOptions.radialBar = options.plotOptions.radialBar || {};
-          if (this.hasAttribute('hollow-size')) options.plotOptions.radialBar.hollow = { size: this.getAttribute('hollow-size') || '50%' };
-          if (this.hasAttribute('track-width')) options.plotOptions.radialBar.track = { show: true, width: parseInt(this.getAttribute('track-width')) || 97 };
-          if (this.hasAttribute('radial-data-labels')) options.plotOptions.radialBar.dataLabels = { show: this.getAttribute('radial-data-labels') === 'true' };
-          if (this.getAttribute('dashed-radial') === 'true') {
-            if (!options.plotOptions.radialBar.track) options.plotOptions.radialBar.track = { show: true };
-            options.plotOptions.radialBar.track.strokeWidth = '50%';
-          }
-        }
-      }
-    }
-
-    // Realtime settings
-    if (this.getAttribute('realtime') === 'true') {
-      if (!options.chart) options.chart = {};
-      options.chart.animations = { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } };
-      options.chart.zoom = { enabled: false };
-      if (!options.dataLabels) options.dataLabels = {};
-      options.dataLabels.enabled = false; // Disable data labels for realtime
-    }
-
-    return options;
+    // Cartesian/other charts
+    const runtimeSeriesObjects = Array.from(this._seriesMap.values()).map(series => {
+      const data = Array.isArray(series.data) ? series.data.slice() : [series.data];
+      return { name: series.name, data: data, color: series.color, dashed: !!series.dashed };
+    });
+    const dataAttr = runtimeSeriesObjects;
+    const categories = Array.isArray(this._categories) ? this._categories.slice() : [];
+    const colors = Array.isArray(this._colors) ? this._colors.slice() : [];
+    return { runtimeSeriesObjects, dataAttr, categories, colors };
   }
 
   // Refresh chart with all stored series
+  // By default this will recreate the chart to ensure parity with static attributes.
+  // Pass `false` to perform an incremental update instead.
+  /**
+   * Refresh the chart using in-memory runtime state. This method consolidates
+   * all runtime series/colors/categories and writes them back into the
+   * `data`, `colors`, and `categories` attributes via `_setAttributeInternal`
+   * to ensure `render()` reconstructs the ApexCharts instance.
+   * @returns {void}
+   */
   refresh() {
-    if (this.chart) {
-      const chartType = this.getAttribute('type') || 'line';
-      
-      // Build options to update from current attributes
-      const optionsToUpdate = this.buildRefreshOptionsFromAttributes();
+    try {
+    const chartType = this.getAttribute('type') || 'line';
 
-      if (chartType === 'pie' || chartType === 'donut' || chartType === 'radialBar') {
-        // For circular charts, create specific runtime values
-        const runtimeSeriesObjects = Array.from(this._seriesMap.values()).map(series => ({
-          name: series.name,
-          data: Array.isArray(series.data) ? series.data[0] : series.data,
-          color: series.color
-        }));
+    // Consolidate runtime state for this chart type first
+    const state = this._buildRuntimeState(chartType);
 
-        // Build arrays required by ApexCharts
-        const pieSeries = runtimeSeriesObjects.map(s => s.data || 0);
-        const pieLabels = runtimeSeriesObjects.map(s => s.name);
-        const pieColors = runtimeSeriesObjects.map(s => s.color).filter(Boolean);
+    // Apply attributes from runtime state so `render()` uses them
+    try {
+      if (state.dataAttr && state.dataAttr.length > 0) this._setAttributeInternal('data', JSON.stringify(state.dataAttr));
+      else this._removeAttributeInternal('data');
+      } catch(e) {}
+    try {
+      if (state.categories && state.categories.length > 0) this._setAttributeInternal('categories', JSON.stringify(state.categories));
+        else this._removeAttributeInternal('categories');
+      } catch(e) {}
+    try {
+      const runtimeSeriesColors = state.runtimeSeriesObjects ? state.runtimeSeriesObjects.map(s => s && s.color).filter(Boolean) : [];
+      const paletteColors = state.colors && state.colors.length > 0 ? state.colors : [];
+      const applyColors = runtimeSeriesColors.length > 0 ? runtimeSeriesColors : paletteColors;
+      if (applyColors && applyColors.length > 0) this._setAttributeInternal('colors', JSON.stringify(applyColors));
+        else this._removeAttributeInternal('colors');
+      } catch(e) {}
 
-        // Set DOM attributes to reflect runtime state (so external code reads current values)
-        try {
-          const attrData = runtimeSeriesObjects.map(s => ({ name: s.name, data: s.data, color: s.color }));
-          if (attrData.length > 0) this.setAttribute('data', JSON.stringify(attrData));
-          else this.removeAttribute('data');
-        } catch (err) {
-          // ignore attribute serialization errors
-        }
-
-        if (pieColors.length > 0) {
-          try { this.setAttribute('colors', JSON.stringify(pieColors)); } catch(e) {}
-        } else {
-          try { this.removeAttribute('colors'); } catch(e) {}
-        }
-
-        // Debug logging for runtime values
-        // Logging removed in production; leave optional debug points if needed
-        // Apply to options and series in proper order
-        optionsToUpdate.labels = pieLabels;
-        if (pieColors.length > 0) optionsToUpdate.colors = pieColors;
-        // Apply options first so labels/colors are present before data is updated
-        try {
-          if (Object.keys(optionsToUpdate).length > 0) this.chart.updateOptions(optionsToUpdate);
-          this.chart.updateSeries(pieSeries);
-        } catch (err) {
-          console.error('Error applying pie refresh updates:', err.message || err, err.stack || 'no stack');
-        }
-        return; // We've already updated and returned
-      } else {
-        // For other chart types, convert runtime map to series array
-        const runtimeSeriesObjects = Array.from(this._seriesMap.values()).map(series => {
-          const data = Array.isArray(series.data) ? series.data.slice() : [series.data];
-          return { name: series.name, data: data, color: series.color };
-        });
-
-        // Set DOM attributes for integration/consistency
-        try {
-          if (runtimeSeriesObjects.length > 0) this.setAttribute('data', JSON.stringify(runtimeSeriesObjects));
-          else this.removeAttribute('data');
-        } catch(e) {}
-
-        // Ensure categories are reflected as attribute as well
-        try {
-          if (this._categories.length > 0) this.setAttribute('categories', JSON.stringify(this._categories));
-          else this.removeAttribute('categories');
-        } catch (e) {}
-
-        // Ensure colors attribute reflects runtime
-        try {
-          if (this._colors.length > 0) this.setAttribute('colors', JSON.stringify(this._colors));
-          else this.removeAttribute('colors');
-        } catch(e) {}
-
-        // Logging removed in production; leave optional debug points if needed
-        // Update options first (xaxis categories, colors) then update series data
-        if (this._categories.length > 0) optionsToUpdate.xaxis = { ...optionsToUpdate.xaxis, categories: this._categories };
-        if (this._colors.length > 0) optionsToUpdate.colors = this._colors;
-        try {
-          if (Object.keys(optionsToUpdate).length > 0) this.chart.updateOptions(optionsToUpdate);
-          this.chart.updateSeries(runtimeSeriesObjects);
-        } catch (err) {
-          console.error('Error applying cartesian refresh updates:', err.message || err, err.stack || 'no stack');
-        }
-        return;
-      }
-
-      // Update categories if any are stored (only for cartesian charts)
-      if ((chartType !== 'pie' && chartType !== 'donut' && chartType !== 'radialBar') && this._categories.length > 0) {
-        optionsToUpdate.xaxis = {
-          ...optionsToUpdate.xaxis,
-          categories: this._categories
-        };
-      }
-
-      // Update colors if any are stored
-      if (this._colors.length > 0) {
-        optionsToUpdate.colors = this._colors;
-      }
-
-      // Apply all options updates
-      if (Object.keys(optionsToUpdate).length > 0) {
-        this.chart.updateOptions(optionsToUpdate);
-      }
+      // Recreate chart to ensure full parity with attributes + merged defaults
+      this.updateChart();
+      return;
+    } catch (err) {
+      console.error('Error during chart refresh:', err.message || err, err.stack || 'no stack');
     }
   }
 
-  // Add a single category to memory
-  addCategory(catName) {
-    this._categories.push(catName);
-  }
-
   // Add multiple categories to memory
+  /**
+   * Add multiple categories to runtime categories array and ensure internal
+   * state is updated. Does not call `refresh()` automatically.
+   * @param {Array<string>} cats - Array of category labels to append
+   */
   addCategories(cats) {
     if (Array.isArray(cats)) {
       this._categories.push(...cats);
@@ -3061,7 +3553,12 @@ class SithasoApex extends HTMLElement {
   }
 
   // Add colors for series (B4X compatible method)
-  AddColors(cols) {
+  /**
+   * Append a set of colors to the runtime palette without applying them to
+   * the chart — call `refresh()` to persist them to `options.colors`.
+   * @param {Array<string>} cols - Array of color strings
+   */
+  addColors(cols) {
     if (Array.isArray(cols)) {
       this._colors.push(...cols);
     }
