@@ -4,7 +4,8 @@
 
 SithasoApex is a lightweight web component that wraps the powerful ApexCharts library, letting you build professional-looking charts using simple HTML attributes. Whether you're a developer looking to add data visualizations to your website or a designer wanting to create dashboards, SithasoApex makes it easy to create beautiful charts without writing complex code.
 
-[![SithasoApex Demo](https://img.youtube.com/vi/PkgprunacBM/0.jpg)](https://youtu.be/PkgprunacBM)
+## ✨Sithaso Apex Demo
+[![Sithaso Apex Demo](https://img.youtube.com/vi/PkgprunacBM/0.jpg)](https://youtu.be/PkgprunacBM)
 
 ### 🎨 Key Features
 
@@ -24,7 +25,8 @@ Add these scripts to your HTML `<head>`:
 
 ```html
 <!-- ApexCharts library (required) -->
-<script src="src/apexcharts.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.css" rel="stylesheet">
 
 <!-- SithasoApex component -->
 <script src="src/SithasoApex.js"></script>
@@ -37,7 +39,8 @@ Add these scripts to your HTML `<head>`:
 <html>
 <head>
     <title>My Chart</title>
-    <script src="src/apexcharts.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.css" rel="stylesheet">
     <script src="src/SithasoApex.js"></script>
 </head>
 <body>
@@ -69,7 +72,8 @@ Want to modify charts dynamically? Use JavaScript to add data and update charts 
 <html>
 <head>
     <title>Runtime Chart</title>
-    <script src="src/apexcharts.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.css" rel="stylesheet">
     <script src="src/SithasoApex.js"></script>
 </head>
 <body>
