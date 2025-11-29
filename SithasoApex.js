@@ -34,7 +34,7 @@
 
 class SithasoApex extends HTMLElement {
   static get observedAttributes() {
-    return ['type', 'data', 'options', 'height', 'width', 'theme', 'loading', 'show-legend', 'legend-position', 'show-toolbar', 'title', 'show-data-labels', 'data-label-orientation', 'data-label-position', 'x-axis-title', 'y-axis-title', 'bar-orientation', 'curve', 'line-width', 'categories', 'donut-show-total', 'hollow-size', 'dashed-radial', 'track-width', 'bar', 'x-axis-offsety', 'x-axis-label-rotate', 'x-axis-label-rotate-offsety', 'gradient', 'realtime', 'marker-size', 'stacked', 'border-radius', 'x-axis-output-format', 'y-axis-output-format', 'column-width', 'start-angle', 'end-angle', 'bar-labels', 'sparkline','grid-show','tooltip-enabled','subtitle','subtitle-font-size','title-font-size'];
+    return ['type', 'data', 'options', 'height', 'width', 'theme', 'loading', 'show-legend', 'legend-position', 'show-toolbar', 'title', 'show-data-labels', 'data-label-orientation', 'data-label-position', 'x-axis-title', 'y-axis-title', 'curve', 'line-width', 'categories', 'donut-show-total', 'hollow-size', 'dashed-radial', 'track-width', 'bar', 'x-axis-offsety', 'x-axis-label-rotate', 'x-axis-label-rotate-offsety', 'gradient', 'realtime', 'marker-size', 'stacked', 'border-radius', 'x-axis-output-format', 'y-axis-output-format', 'column-width', 'start-angle', 'end-angle', 'bar-labels', 'sparkline','grid-show','tooltip-enabled','subtitle','subtitle-font-size','title-font-size'];
   }
 
   /**
@@ -856,9 +856,6 @@ class SithasoApex extends HTMLElement {
   get yAxisTitle() { return this.getAttribute('y-axis-title'); }
   set yAxisTitle(value) { this.setAttribute('y-axis-title', value); }
 
-  get barOrientation() { return this.getAttribute('bar-orientation'); }
-  set barOrientation(value) { this.setAttribute('bar-orientation', value); }
-
   // Getter/setter for data-label-orientation: values like 'vertical' or 'horizontal'
   get dataLabelOrientation() { return this.getAttribute('data-label-orientation'); }
   set dataLabelOrientation(value) {
@@ -1106,6 +1103,14 @@ class SithasoApex extends HTMLElement {
       },*/
       ...options
     };
+
+    // Preserve axis titles when user options override xaxis/yaxis
+    if (options && options.xaxis) {
+      defaultOptions.xaxis = { ...this.getBaseDefaultOptions('line').xaxis, ...options.xaxis };
+    }
+    if (options && options.yaxis) {
+      defaultOptions.yaxis = { ...this.getBaseDefaultOptions('line').yaxis, ...options.yaxis };
+    }
 
     // Apply realtime settings if enabled
     /*if (this.getAttribute('realtime') === 'true') {
@@ -1394,6 +1399,14 @@ class SithasoApex extends HTMLElement {
       ...options
     };
 
+    // Preserve axis titles when user options override xaxis/yaxis
+    if (options && options.xaxis) {
+      defaultOptions.xaxis = { ...this.getBaseDefaultOptions('area').xaxis, ...options.xaxis };
+    }
+    if (options && options.yaxis) {
+      defaultOptions.yaxis = { ...this.getBaseDefaultOptions('area').yaxis, ...options.yaxis };
+    }
+
     // If `sparkline` attribute is enabled, set the chart.sparkline.enabled flag
     if (this.sparkline) {
       try {
@@ -1524,7 +1537,7 @@ class SithasoApex extends HTMLElement {
     const showDataLabels = this.showDataLabels;
     //const xAxisTitle = this.getAttribute('x-axis-title') || '';
     //const yAxisTitle = this.getAttribute('y-axis-title') || '';
-    const barOrientation = this.getAttribute('bar-orientation') || 'vertical'; // Default to vertical for columns
+    const barOrientation = false
     //const curve = this.getAttribute('curve') || 'smooth';
     const categories = this.getAttribute('categories') || '[]';
 
@@ -1564,7 +1577,7 @@ class SithasoApex extends HTMLElement {
       },
       plotOptions: {
         bar: {
-          horizontal: barOrientation === 'horizontal', // Will be false for vertical columns
+          horizontal: barOrientation, // Will be false for vertical columns
           borderRadius: this.borderRadius,
           // For vertical columns we want rounded corners on both top and bottom ('around').
           // For horizontal bars keep 'end' to round only the outer end.
@@ -1601,6 +1614,14 @@ class SithasoApex extends HTMLElement {
       },*/
       ...options
     };
+
+    // Preserve axis titles when user options override xaxis/yaxis
+    if (options && options.xaxis) {
+      defaultOptions.xaxis = { ...this.getBaseDefaultOptions('column').xaxis, ...options.xaxis };
+    }
+    if (options && options.yaxis) {
+      defaultOptions.yaxis = { ...this.getBaseDefaultOptions('column').yaxis, ...options.yaxis };
+    }
 
     // Apply realtime settings if enabled
     /*if (this.getAttribute('realtime') === 'true') {
@@ -1677,17 +1698,10 @@ class SithasoApex extends HTMLElement {
     if (categories) {
       try {
         const categoriesArray = JSON.parse(categories);
-        if (barOrientation === 'horizontal') {
-          defaultOptions.yaxis = {
-            ...defaultOptions.yaxis,
-            categories: categoriesArray
-          };
-        } else {
-          defaultOptions.xaxis = {
-            ...defaultOptions.xaxis,
-            categories: categoriesArray
-          };
-        }
+        defaultOptions.xaxis = {
+          ...defaultOptions.xaxis,
+          categories: categoriesArray
+        };        
       } catch (error) {
         console.warn('Invalid categories format:', categories);
       }
@@ -2300,7 +2314,7 @@ class SithasoApex extends HTMLElement {
           barLabels: {
             enabled: this.barLabels === true,
             useSeriesColors: true,
-            offsetX: -6,
+            offsetX: -40,
             fontSize: '14px',
             formatter: function(seriesName, opts) {
               return seriesName + ":  " + (opts && opts.w && opts.w.globals && opts.w.globals.series ? opts.w.globals.series[opts.seriesIndex] : '');
@@ -2443,6 +2457,7 @@ class SithasoApex extends HTMLElement {
         strokeWidth: 2
       },*/
       xaxis: {
+        ...this.getBaseDefaultOptions('scatter').xaxis,
         tickAmount: 10,
         labels: {
           formatter: function(val) {
@@ -2451,10 +2466,19 @@ class SithasoApex extends HTMLElement {
         }
       },
       yaxis: {
+        ...this.getBaseDefaultOptions('scatter').yaxis,
         tickAmount: 7
       },
       ...options
     };
+
+    // Preserve axis titles when user options override xaxis/yaxis
+    if (options && options.xaxis) {
+      defaultOptions.xaxis = { ...defaultOptions.xaxis, ...options.xaxis };
+    }
+    if (options && options.yaxis) {
+      defaultOptions.yaxis = { ...defaultOptions.yaxis, ...options.yaxis };
+    }
 
     // Apply realtime settings if enabled
     /*if (this.getAttribute('realtime') === 'true') {
@@ -2639,13 +2663,13 @@ class SithasoApex extends HTMLElement {
       yaxis: { stepSize: 20 }
     };
 
-    /*if (this.gridShow === null) {
-      defaultOptions.grid = defaultOptions.grid || {};
+    // Set grid visibility based on gridShow attribute
+    defaultOptions.grid = defaultOptions.grid || {};
+    if (this.gridShow === null) {
       defaultOptions.grid.show = false;
     } else {
-      defaultOptions.grid = defaultOptions.grid || {};
       defaultOptions.grid.show = this.gridShow;
-    }*/
+    }
 
     // Deep-merge user `options` into defaults so nested objects are preserved
     defaultOptions = this.deepMerge(defaultOptions, options || {});
@@ -2891,6 +2915,14 @@ class SithasoApex extends HTMLElement {
       //markers: { size: this.markerSize, strokeColors: '#fff', strokeWidth: 2 },
       ...options
     };
+
+    // Preserve axis titles when user options override xaxis/yaxis
+    if (options && options.xaxis) {
+      defaultOptions.xaxis = { ...this.getBaseDefaultOptions('area').xaxis, ...options.xaxis };
+    }
+    if (options && options.yaxis) {
+      defaultOptions.yaxis = { ...this.getBaseDefaultOptions('area').yaxis, ...options.yaxis };
+    }
 
     // Apply axis titles
     //if (xAxisTitle) defaultOptions.xaxis = { ...(defaultOptions.xaxis || {}), title: { text: xAxisTitle, style: { fontSize: '14px', color: '#333' }, offsetY: parseInt(this.getAttribute('x-axis-offsety')) || 2 } };
@@ -3265,7 +3297,7 @@ class SithasoApex extends HTMLElement {
       if (Array.isArray(a) && a.length >= 2) point = { x: a[0], y: a[1] };
       else if (typeof a.x !== 'undefined' || typeof a.y !== 'undefined') point = { x: a.x, y: a.y };
       else point = a;
-    } else if (typeof a === 'number' && typeof b === 'number') {
+} else if (typeof b !== 'undefined') {
       point = { x: a, y: b };
     } else {
       // assume single numeric value (pie/donut or array datapoint)

@@ -950,8 +950,19 @@ el.refresh();</code></pre>
         <strong>Runtime Code</strong>
         <pre class="code-block"><code class="language-js">const el = document.getElementById('range-area-chart-runtime');
 el.clear();
-el.addCategories(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
-el.addSeries('New York Temperature', '#008FFB', [{x:'Jan',y:[-2,4]},{x:'Feb',y:[-1,6]},{x:'Mar',y:[3,10]},{x:'Apr',y:[8,16]},{x:'May',y:[13,22]},{x:'Jun',y:[18,26]},{x:'Jul',y:[21,29]},{x:'Aug',y:[21,28]},{x:'Sep',y:[17,24]},{x:'Oct',y:[11,18]},{x:'Nov',y:[6,12]},{x:'Dec',y:[1,7]}]);
+el.addSeriesColor('New York Temperature', '#008FFB');
+el.addSeriesPoint('New York Temperature', 'Jan', [-2, 4]);
+el.addSeriesPoint('New York Temperature', 'Feb', [-1, 6]);
+el.addSeriesPoint('New York Temperature', 'Mar', [3, 10]);
+el.addSeriesPoint('New York Temperature', 'Apr', [8, 16]);
+el.addSeriesPoint('New York Temperature', 'May', [13, 22]);
+el.addSeriesPoint('New York Temperature', 'Jun', [18, 26]);
+el.addSeriesPoint('New York Temperature', 'Jul', [21, 29]);
+el.addSeriesPoint('New York Temperature', 'Aug', [21, 28]);
+el.addSeriesPoint('New York Temperature', 'Sep', [17, 24]);
+el.addSeriesPoint('New York Temperature', 'Oct', [11, 18]);
+el.addSeriesPoint('New York Temperature', 'Nov', [6, 12]);
+el.addSeriesPoint('New York Temperature', 'Dec', [1, 7]);
 el.refresh();</code></pre>
       </div>
     </div>
@@ -977,7 +988,12 @@ el.refresh();</code></pre>
         <strong>Runtime Code</strong>
         <pre class="code-block"><code class="language-js">const el = document.getElementById('data-correlation-scatter-runtime');
 el.clear();
-el.addSeries('Data Points', '#008FFB', [[10,20],[15,25],[20,30],[25,35],[30,40]]);
+el.addSeriesColor('Data Points', '#008FFB');
+el.addSeriesPoint('Data Points', 10, 20);
+el.addSeriesPoint('Data Points', 15, 25);
+el.addSeriesPoint('Data Points', 20, 30);
+el.addSeriesPoint('Data Points', 25, 35);
+el.addSeriesPoint('Data Points', 30, 40);
 el.refresh();
 </code></pre>
       </div>
@@ -1236,6 +1252,7 @@ el.refresh();
       <sithaso-apex id="stacked-column-chart" type="column" title="Stacked Sales by Product"
         categories='["Q1","Q2","Q3","Q4"]' border-radius="4" show-data-labels="false" y-axis-output-format="money"
         column-width="40%" stacked="true" data-label-position="center"
+        x-axis-title="Quarters" y-axis-title="Sales ($)"
         data='[{"name":"Product A","data":[44,55,41,67],"color":"#008FFB"},{"name":"Product B","data":[13,23,20,8],"color":"#00E396"},{"name":"Product C","data":[11,17,15,15],"color":"#FEB019"}]'
         height="350px">
       </sithaso-apex>
@@ -1244,7 +1261,7 @@ el.refresh();
       <h2 id="example-27-1">27.1 Runtime Stacked Column Chart</h2>
       <sithaso-apex id="example-27-chart-runtime" type="column" title="Stacked Sales by Product (Runtime)"
         border-radius="4" show-data-labels="false" y-axis-output-format="money" column-width="40%" stacked="true"
-        data-label-position="center" height="350px"></sithaso-apex>
+        data-label-position="center" x-axis-title="Quarters" y-axis-title="Sales ($)" height="350px"></sithaso-apex>
       <div class="controls example-runtime-controls">
         <button onclick="initExample27Runtime()">🔧 Initialize Runtime</button>
         <button onclick="randomizeExample27Runtime()">🎲 Randomize</button>
@@ -1268,6 +1285,7 @@ el.refresh();
       <h2 id="example-28">📈 28. Stacked Area Chart</h2>
       <sithaso-apex id="stacked-area-chart" type="area" title="Stacked Area - Traffic Sources"
         categories='["Jan","Feb","Mar","Apr","May","Jun","Jul"]' stacked="true"
+        x-axis-title="Months" y-axis-title="Traffic Volume"
         data='[{"name":"Organic","data":[44,55,41,67,22,43,21],"color":"#008FFB"},{"name":"Direct","data":[13,23,20,8,13,27,33],"color":"#00E396"},{"name":"Referral","data":[11,17,15,15,21,14,22],"color":"#FEB019"}]'
         height="350px">
       </sithaso-apex>
@@ -1275,7 +1293,7 @@ el.refresh();
     <div class="chart-container">
       <h2 id="example-28-1">28.1 Runtime Stacked Area Chart</h2>
       <sithaso-apex id="example-28-chart-runtime" type="area" title="Stacked Area - Traffic Sources (Runtime)"
-        stacked="true" height="350px"></sithaso-apex>
+        stacked="true" x-axis-title="Months" y-axis-title="Traffic Volume" height="350px"></sithaso-apex>
       <div class="controls example-runtime-controls">
         <button onclick="initExample28Runtime()">🔧 Initialize Runtime</button>
         <button onclick="randomizeExample28Runtime()">🎲 Randomize</button>
@@ -1992,14 +2010,14 @@ el.refresh();
       function randomizeTrafficSourcesStackedRuntime() { const el = document.getElementById('traffic-sources-stacked-runtime'); if (!el) return; try { const a = [], b = [], c = []; for (let i = 0; i < 9; i++) { a.push(Math.floor(Math.random() * 100)); b.push(Math.floor(Math.random() * 120)); c.push(Math.floor(Math.random() * 80)); } el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']); el.addSeries('Organic Search', '#008FFB', a); el.addSeries('Direct', '#00E396', b); el.addSeries('Social Media', '#FEB019', c); el.refresh(); console.log('Runtime traffic sources stacked randomized'); } catch (e) { console.error('randomizeTrafficSourcesStackedRuntime error', e); } }
 
       // Runtime example 18.1 helpers
-      function initRangeAreaRuntime() { const el = document.getElementById('range-area-chart-runtime'); if (!el) return; try { el.clear(); el.addCategories(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']); el.addSeries('New York Temperature', '#008FFB', [{ x: 'Jan', y: [-2, 4] }, { x: 'Feb', y: [-1, 6] }, { x: 'Mar', y: [3, 10] }, { x: 'Apr', y: [8, 16] }, { x: 'May', y: [13, 22] }, { x: 'Jun', y: [18, 26] }, { x: 'Jul', y: [21, 29] }, { x: 'Aug', y: [21, 28] }, { x: 'Sep', y: [17, 24] }, { x: 'Oct', y: [11, 18] }, { x: 'Nov', y: [6, 12] }, { x: 'Dec', y: [1, 7] }]); el.refresh(); console.log('Runtime range area initialized'); } catch (e) { console.error('initRangeAreaRuntime error', e); } }
+      function initRangeAreaRuntime() { const el = document.getElementById('range-area-chart-runtime'); if (!el) return; try { el.clear(); el.addSeriesColor('New York Temperature', '#008FFB'); el.addSeriesPoint('New York Temperature', 'Jan', [-2, 4]); el.addSeriesPoint('New York Temperature', 'Feb', [-1, 6]); el.addSeriesPoint('New York Temperature', 'Mar', [3, 10]); el.addSeriesPoint('New York Temperature', 'Apr', [8, 16]); el.addSeriesPoint('New York Temperature', 'May', [13, 22]); el.addSeriesPoint('New York Temperature', 'Jun', [18, 26]); el.addSeriesPoint('New York Temperature', 'Jul', [21, 29]); el.addSeriesPoint('New York Temperature', 'Aug', [21, 28]); el.addSeriesPoint('New York Temperature', 'Sep', [17, 24]); el.addSeriesPoint('New York Temperature', 'Oct', [11, 18]); el.addSeriesPoint('New York Temperature', 'Nov', [6, 12]); el.addSeriesPoint('New York Temperature', 'Dec', [1, 7]); el.refresh(); console.log('Runtime range area initialized'); } catch (e) { console.error('initRangeAreaRuntime error', e); } }
       function clearRangeAreaRuntime() { const el = document.getElementById('range-area-chart-runtime'); if (!el) return; try { el.clear(); console.log('Runtime range area cleared'); } catch (e) { console.error('clearRangeAreaRuntime error', e); } }
-      function randomizeRangeAreaRuntime() { const el = document.getElementById('range-area-chart-runtime'); if (!el) return; try { const vals = []; const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; const series = []; for (let i = 0; i < 12; i++) { const base = Math.floor(Math.random() * 20); const low = base - Math.floor(Math.random() * 10); const high = base + Math.floor(Math.random() * 10); series.push({ x: months[i], y: [low, high] }); } el.clear(); el.addCategories(months); el.addSeries('New York Temperature', '#008FFB', series); el.refresh(); console.log('Runtime range area randomized'); } catch (e) { console.error('randomizeRangeAreaRuntime error', e); } }
+      function randomizeRangeAreaRuntime() { const el = document.getElementById('range-area-chart-runtime'); if (!el) return; try { const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; el.clear(); el.addSeriesColor('New York Temperature', '#008FFB'); for (let i = 0; i < 12; i++) { const base = Math.floor(Math.random() * 20); const low = base - Math.floor(Math.random() * 10); const high = base + Math.floor(Math.random() * 10); el.addSeriesPoint('New York Temperature', months[i], [low, high]); } el.refresh(); console.log('Runtime range area randomized'); } catch (e) { console.error('randomizeRangeAreaRuntime error', e); } }
 
       // Runtime example 19.1 helpers
-      function initDataCorrelationScatterRuntime() { const el = document.getElementById('data-correlation-scatter-runtime'); if (!el) return; try { el.clear(); el.addSeries('Data Points', '#008FFB', [[10, 20], [15, 25], [20, 30], [25, 35], [30, 40]]); el.refresh(); console.log('Runtime scatter chart initialized'); } catch (e) { console.error('initDataCorrelationScatterRuntime error', e); } }
+      function initDataCorrelationScatterRuntime() { const el = document.getElementById('data-correlation-scatter-runtime'); if (!el) return; try { el.clear(); el.addSeriesColor('Data Points', '#008FFB'); el.addSeriesPoint('Data Points', 10, 20); el.addSeriesPoint('Data Points', 15, 25); el.addSeriesPoint('Data Points', 20, 30); el.addSeriesPoint('Data Points', 25, 35); el.addSeriesPoint('Data Points', 30, 40); el.refresh(); console.log('Runtime scatter chart initialized'); } catch (e) { console.error('initDataCorrelationScatterRuntime error', e); } }
       function clearDataCorrelationScatterRuntime() { const el = document.getElementById('data-correlation-scatter-runtime'); if (!el) return; try { el.clear(); console.log('Runtime scatter chart cleared'); } catch (e) { console.error('clearDataCorrelationScatterRuntime error', e); } }
-      function randomizeDataCorrelationScatterRuntime() { const el = document.getElementById('data-correlation-scatter-runtime'); if (!el) return; try { const pts = []; for (let i = 0; i < 8; i++) { pts.push([Math.floor(Math.random() * 40) + 10, Math.floor(Math.random() * 40) + 10]); } el.clear(); el.addSeries('Data Points', '#008FFB', pts); el.refresh(); console.log('Runtime scatter chart randomized'); } catch (e) { console.error('randomizeDataCorrelationScatterRuntime error', e); } }
+      function randomizeDataCorrelationScatterRuntime() { const el = document.getElementById('data-correlation-scatter-runtime'); if (!el) return; try { const points = []; for (let i = 0; i < 5; i++) { points.push([Math.floor(Math.random() * 50) + 10, Math.floor(Math.random() * 50) + 10]); } el.clear(); el.addSeriesColor('Data Points', '#008FFB'); for (let p of points) { el.addSeriesPoint('Data Points', p[0], p[1]); } el.refresh(); console.log('Runtime scatter chart randomized'); } catch (e) { console.error('randomizeDataCorrelationScatterRuntime error', e); } }
 
       // Runtime example 20.1 helpers
       function initProgressRadialBarRuntime() { const el = document.getElementById('progress-radial-bar-runtime'); if (!el) return; try { el.clear(); el.addSeries('Progress', '#008FFB', 70); el.addSeries('Score', '#00E396', 80); el.addSeries('Rating', '#FEB019', 90); el.refresh(); console.log('Runtime progress radial initialized'); } catch (e) { console.error('initProgressRadialBarRuntime error', e); } }
